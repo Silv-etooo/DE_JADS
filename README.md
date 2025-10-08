@@ -1,37 +1,19 @@
 mlops-cat-classifier/
 ├── notebooks/
-│   └── cat_classifier.ipynb
-│       - Jupyter notebook for developing and testing the cat vs not-cat classifier.
+│ └── cat_classifier.ipynb # Jupyter notebook for developing/testing the model
 │
 ├── src/
-│   ├── train.py
-│       - Python script to train the image classification model (based on MobileNetV2).
-│   ├── pipeline.py
-│       - Vertex AI pipeline definition using the KFP SDK.
-│   ├── predict_api.py
-│       - FastAPI app that serves the trained model as a REST API.
+│ ├── train.py # Training script using TensorFlow + MobileNetV2
+│ ├── pipeline.py # Vertex AI pipeline definition (KFP)
+│ └── predict_api.py # FastAPI service for serving predictions
 │
 ├── ui/
-│   └── streamlit_app.py
-│       - Frontend UI for uploading images and viewing predictions (Streamlit).
+│ └── streamlit_app.py # (Optional) UI for uploading images and testing predictions
 │
-├── Dockerfile.train
-│   - Dockerfile for building the training component.
+├── Dockerfile.train # Dockerfile for the training component
+├── Dockerfile.api # Dockerfile for the prediction API service
+├── cloudbuild.yaml # CI/CD config for GCP Cloud Build
 │
-├── Dockerfile.api
-│   - Dockerfile for building the prediction API service.
-│
-├── cloudbuild.yaml
-│   - Cloud Build CI/CD configuration to automate:
-│       - building Docker images
-│       - deploying training pipeline to Vertex AI
-│       - deploying the API service
-│
-├── requirements.txt
-│   - Python dependencies for training and API.
-│
-├── .gitignore
-│   - Specifies files and folders to ignore in version control (e.g., __pycache__, model checkpoints).
-│
-├── README.md
-│   - Project overview, setup instructions, usage, and links.
+├── requirements.txt # Python dependencies
+├── .gitignore # Ignore unnecessary files (e.g., pycache, .DS_Store, etc.)
+└── README.md # You're here! Overview, setup, and usage instructions
