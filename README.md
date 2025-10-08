@@ -6,10 +6,8 @@ mlops-cat-classifier/ <br>
 │ ├── train.py # Training script using TensorFlow + MobileNetV2 <br>
 │ ├── pipeline.py # Vertex AI pipeline definition (KFP) <br>
 │ └── predict_api.py # FastAPI service for serving predictions <br>
-│ <br>
-├── ui/ <br>
-│ └── streamlit_app.py # (Optional) UI for uploading images and testing predictions <br>
-│ <br>
+│ └── templates/                  # HTML templates for Flask UI <br>
+│     └── index.html              # Upload form for image prediction <br>
 ├── Dockerfile.train # Dockerfile for the training component <br>
 ├── Dockerfile.api # Dockerfile for the prediction API service <br>
 ├── cloudbuild.yaml # CI/CD config for GCP Cloud Build <br>
