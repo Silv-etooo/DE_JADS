@@ -8,6 +8,7 @@ mlops-cat-classifier/ <br>
 │ ├── predict_api.py              # Flask service for serving predictions <br>
 │ └── templates/                  # HTML templates for Flask UI <br>
 │     └── index.html              # Upload form for image prediction <br>
+│ <br>
 ├── Dockerfile.train # Dockerfile for the training component <br>
 ├── Dockerfile.api # Dockerfile for the prediction API service <br>
 ├── cloudbuild.yaml # CI/CD config for GCP Cloud Build <br>
