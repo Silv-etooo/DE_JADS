@@ -1,8 +1,8 @@
-mlops-cat-classifier/ 
-├── notebooks/ 
-│ └── cat_classifier.ipynb # Jupyter notebook for developing/testing the model 
-│ 
-├── src/ 
+mlops-cat-classifier/ <br>
+├── notebooks/ <br>
+│ └── cat_classifier.ipynb # Jupyter notebook for developing/testing the model <br>
+│ <br>
+├── src/ <br>
 │ ├── train.py # Training script using TensorFlow + MobileNetV2 
 │ ├── pipeline.py # Vertex AI pipeline definition (KFP) 
 │ └── predict_api.py # FastAPI service for serving predictions 
