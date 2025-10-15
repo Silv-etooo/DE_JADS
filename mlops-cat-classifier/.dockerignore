@@ -1,3 +1,10 @@
 .git
 .gitignore
 Dockerfile*
+uploads/
+*.pyc
+*.pyo
+*.log
+*.ipynb
+.env
+__pycache__/
