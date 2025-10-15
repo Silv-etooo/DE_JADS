@@ -1,0 +1,23 @@
+FROM python:3.10-slim
+
+WORKDIR /src
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libglib2.0-0 libsm6 libxext6 libxrender1 \
+    build-essential python3-dev && \
+    pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+EXPOSE 8000
+
+ENV UPLOAD_FOLDER=/src/app/uploads \
+    DEBUG=False
+
+LABEL prediction="0.0.1-beta"
+
+CMD ["python", "predict_api.py"]
