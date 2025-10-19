@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify, render_template
 from tensorflow.keras.applications.mobilenet_v2 import MobileNetV2, preprocess_input, decode_predictions
 from tensorflow.keras.preprocessing import image
+from tensorflow.keras.models import load_model
 import numpy as np
 from PIL import Image
 import io
@@ -17,6 +18,7 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # Load Pre-Trained MobileNetV2 Model 
 model = MobileNetV2(weights='imagenet')
+#model = load_model('model/cats_vs_dogs_model') <-has to be changed to out model
 
 def prepare_image(img):
 
