@@ -18,7 +18,7 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # Load Pre-Trained MobileNetV2 Model 
 model = MobileNetV2(weights='imagenet')
-#model = load_model('model/cats_vs_dogs_model') <-has to be changed to out model
+#model = load_model('model/cats_vs_dogs_model') <-has to be changed to our model
 
 def prepare_image(img):
 
