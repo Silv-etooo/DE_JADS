@@ -1,5 +1,26 @@
 steps:
-  # Build Docker image
+  # ============================================================
+  # STAGE 0: RUN UNIT TESTS
+  # ============================================================
+
+  # Run unit tests for prediction API
+  - name: 'python:3.10-slim'
+    entrypoint: bash
+    args:
+      - '-c'
+      - |
+        apt-get update && apt-get install -y --no-install-recommends \
+          libglib2.0-0 libsm6 libxext6 libxrender1
+        pip install --no-cache-dir pytest pillow numpy tensorflow==2.15.0 flask
+        cd mlops-cat-classifier
+        pytest tests/test_api.py --maxfail=1 --disable-warnings -q
+    id: 'run-tests'
+
+  # ============================================================
+  # STAGE 1: BUILD AND PUSH PREDICTION API
+  # ============================================================
+
+  # Build prediction API Docker image
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'build'
@@ -11,17 +32,76 @@ steps:
       - 'us-central1-docker.pkg.dev/$PROJECT_ID/group8repo/cat-classifier-api:latest'
       - './mlops-cat-classifier'
 
-  # Push image with commit SHA tag
+  # Push API image with commit SHA tag
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'push'
       - 'us-central1-docker.pkg.dev/$PROJECT_ID/group8repo/cat-classifier-api:$SHORT_SHA'
 
-  # Push image with latest tag
+  # Push API image with latest tag
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'push'
       - 'us-central1-docker.pkg.dev/$PROJECT_ID/group8repo/cat-classifier-api:latest'
+
+  # ============================================================
+  # STAGE 2: COMPILE AND SUBMIT TRAINING PIPELINE
+  # ============================================================
+
+  # Install KFP SDK and compile the pipeline
+  - name: 'python:3.10-slim'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        pip install --no-cache-dir kfp==2.14.4 google-cloud-aiplatform==1.118.0
+        cd mlops-cat-classifier
+        python pipeline.py gcs
+        echo "Pipeline compiled successfully"
+    id: 'compile-pipeline'
+
+  # Submit pipeline to Vertex AI
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        pip install --no-cache-dir kfp==2.14.4 google-cloud-aiplatform==1.118.0
+        cd mlops-cat-classifier
+        python -c "
+        import google.cloud.aiplatform as aip
+        from pipeline import cat_classifier_pipeline_gcs
+
+        aip.init(
+            project='$PROJECT_ID',
+            staging_bucket='gs://temp_catclassifier',
+            location='us-central1'
+        )
+
+        job = aip.PipelineJob(
+            display_name='cat-classifier-training-pipeline-ci',
+            enable_caching=False,
+            template_path='cat_classifier_training_pipeline_gcs.yaml',
+            pipeline_root='gs://temp_catclassifier',
+            location='us-central1',
+            parameter_values={
+                'project_id': '$PROJECT_ID',
+                'data_bucket': 'data_catclassifier',
+                'dataset_zip_filename': 'cats_and_dogs_filtered.zip',
+                'model_bucket': 'model_catclassifier',
+                'min_accuracy_threshold': 0.75
+            }
+        )
+
+        print('Submitting pipeline to Vertex AI...')
+        job.submit()
+        print('Pipeline submitted successfully!')
+        "
+    id: 'submit-pipeline'
+
+  # ============================================================
+  # STAGE 3: DEPLOY PREDICTION API TO CLOUD RUN
+  # ============================================================
 
   # Deploy to Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'

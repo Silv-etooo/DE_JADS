@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+env/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Project specific
+cats_and_dogs_filtered.zip
+*.keras
+*.pkl
+*.h5
+
+# Temporary/build files
+*.egg-info/
+dist/
+build/
+
+# Logs
+*.log
+
+# Compiled pipeline files
+*.yaml
+!cloudbuild.yaml
+
+# Documentation 
+DATA_SETUP_GUIDE.md
+PIPELINE_README.md
+cloudbuild.json
+mlops-cat-classifier/tests/README.md

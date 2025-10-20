@@ -1,0 +1,6 @@
+# Requirements for Vertex AI Pipeline Development
+
+kfp==2.14.4
+google-cloud-aiplatform==1.118.0
+google-cloud-pipeline-components==2.21.0
+google-cloud-storage==2.10.0
