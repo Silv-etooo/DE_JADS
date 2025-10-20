@@ -99,7 +99,7 @@ def predict():
                 'class' : pred[1],
                 'confidence' : float(pred[2])
             }
-            for pred in decode_predictions[0]
+            for pred in decoded_predictions[0]
         ]
 
         return jsonify({
