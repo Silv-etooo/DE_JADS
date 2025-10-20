@@ -21,6 +21,9 @@ model = MobileNetV2(weights='imagenet')
 #model = load_model('model/cats_vs_dogs_model') <-has to be changed to our model
 
 def prepare_image(img):
+    # Convert to RGB if needed (handles grayscale, RGBA, etc.)
+    if img.mode != 'RGB':
+        img = img.convert('RGB')
 
     # MobileNetV2 expects 224x224 images
     img = img.resize((224, 224))
@@ -82,9 +85,6 @@ def predict():
         
         img_bytes = file.read()
         img = Image.open(io.BytesIO(img_bytes))
-
-        if img.mode != 'RGB':
-            img = img.convert('RGB')
 
         processed_img = prepare_image(img)
 
