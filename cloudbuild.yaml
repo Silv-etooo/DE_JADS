@@ -66,9 +66,9 @@ steps:
     args:
       - '-c'
       - |
-        pip install --no-cache-dir kfp==2.14.4 google-cloud-aiplatform==1.118.0
+        pip3 install --break-system-packages --no-cache-dir kfp==2.14.4 google-cloud-aiplatform==1.118.0
         cd mlops-cat-classifier
-        python -c "
+        python3 -c "
         import google.cloud.aiplatform as aip
         from pipeline import cat_classifier_pipeline_gcs
 
