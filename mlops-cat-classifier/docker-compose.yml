@@ -1,0 +1,25 @@
+version: "3.9"
+
+services:
+  api:
+    build:
+      context: ./app/api        # path to API Dockerfile
+      dockerfile: Dockerfile.api
+    container_name: cat-api
+    ports:
+      - "8000:8000"            
+    restart: always
+
+  ui:
+    build:
+      context: ./app/ui         # path to UI Dockerfile
+      dockerfile: Dockerfile.ui
+    container_name: cat-ui
+    ports:
+      - "5000:5000"             
+    environment:
+      # The UI needs to know where to send prediction requests
+      - PREDICT_API_URL=http://api:8000/predict
+    depends_on:
+      - api
+    restart: always

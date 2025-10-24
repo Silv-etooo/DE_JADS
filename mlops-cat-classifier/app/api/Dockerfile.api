@@ -1,0 +1,15 @@
+FROM python:3.12-bookworm
+
+WORKDIR /usr/src/api
+
+RUN pip install --upgrade pip setuptools wheel
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+# Expose API port
+EXPOSE 5000
+
+CMD ["python3", "predict_api.py"]
