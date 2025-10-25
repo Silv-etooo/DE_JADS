@@ -13,7 +13,7 @@ import numpy as np
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Import after path is set
-from app.predict_api import app, prepare_image, is_cat
+from app.api.predict_api import app, prepare_image, is_cat
 
 
 @pytest.fixture
