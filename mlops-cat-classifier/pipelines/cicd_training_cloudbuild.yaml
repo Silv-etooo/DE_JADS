@@ -4,6 +4,7 @@ steps:
   # ------------------------------------------------------------
   - name: "python:3.10-slim"
     id: "run-tests"
+    dir: "/workspace" # Force Cloud Build to run commands from repo root
     entrypoint: bash
     args:
       - -c
