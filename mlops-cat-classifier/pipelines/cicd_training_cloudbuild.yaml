@@ -18,6 +18,18 @@ steps:
   #       echo "🧪 Running tests..."
   #       pytest tests --maxfail=1 --disable-warnings -v
 
+ # 2) BUILD & PUSH EXECUTOR IMAGE (tags: commit SHA + latest)
+  - name: "gcr.io/cloud-builders/docker"
+    id: "build-executor"
+    #waitFor: ["run-tests"]
+    args:
+      - build
+      - -t
+      - ${_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_EXECUTOR_IMAGE_NAME}:$SHORT_SHA
+      - -t
+      - ${_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_EXECUTOR_IMAGE_NAME}:latest
+      - ${_EXECUTOR_CONTEXT}   
+
   # ------------------------------------------------------------
   # 2) COMPILE PIPELINE (Python → YAML)
   # ------------------------------------------------------------
