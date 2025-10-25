@@ -2,4 +2,5 @@ The builder tool is a Docker Container Image that encapsulates the necessary cod
 
 cloudvuild - 
 Build your custom Docker tool called pipeline-executor.
-That’s a reusable program that knows how to talk to Vertex AI.
+That’s a reusable program that knows how to talk to Vertex AI. 
+.
