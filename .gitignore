@@ -1,7 +1,4 @@
 # Python
-__pycache__/
-*.py[cod]
-*$py.class
 *.so
 .Python
 .venv/
@@ -38,4 +35,3 @@ build/
 DATA_SETUP_GUIDE.md
 PIPELINE_README.md
 cloudbuild.json
-mlops-cat-classifier/tests/README.md
