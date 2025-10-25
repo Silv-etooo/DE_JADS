@@ -23,7 +23,7 @@ steps:
   # ------------------------------------------------------------
   - name: "python:3.10-slim"
     id: "compile-pipeline"
-    waitFor: ["run-tests"]
+    #waitFor: ["run-tests"]
     entrypoint: bash
     args:
       - -c
