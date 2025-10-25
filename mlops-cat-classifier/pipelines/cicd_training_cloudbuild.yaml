@@ -18,10 +18,11 @@ steps:
   #       echo "🧪 Running tests..."
   #       pytest tests --maxfail=1 --disable-warnings -v
 
- # 2) BUILD & PUSH EXECUTOR IMAGE (tags: commit SHA + latest)
+  # ------------------------------------------------------------
+  # 2) BUILD & PUSH EXECUTOR IMAGE (tags: commit SHA + latest)
+  # ------------------------------------------------------------
   - name: "gcr.io/cloud-builders/docker"
     id: "build-executor"
-    #waitFor: ["run-tests"]
     args:
       - build
       - -t
@@ -30,12 +31,26 @@ steps:
       - ${_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_EXECUTOR_IMAGE_NAME}:latest
       - /workspace/mlops-cat-classifier/builder_tool/pipeline_executor
 
+  - name: "gcr.io/cloud-builders/docker"
+    id: "push-executor-sha"
+    waitFor: ["build-executor"]
+    args:
+      - push
+      - ${_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_EXECUTOR_IMAGE_NAME}:$SHORT_SHA
+
+  - name: "gcr.io/cloud-builders/docker"
+    id: "push-executor-latest"
+    waitFor: ["build-executor"]
+    args:
+      - push
+      - ${_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_EXECUTOR_IMAGE_NAME}:latest
+
   # ------------------------------------------------------------
-  # 2) COMPILE PIPELINE (Python → YAML)
+  # 3) COMPILE PIPELINE (Python → YAML)
   # ------------------------------------------------------------
   - name: "python:3.10-slim"
     id: "compile-pipeline"
-    #waitFor: ["run-tests"]
+    waitFor: ["push-executor-sha"]
     entrypoint: bash
     args:
       - -c
@@ -48,7 +63,7 @@ steps:
         test -f "${_PIPELINE_YAML}" && echo "✅ Pipeline compiled."
 
   # ------------------------------------------------------------
-  # 3) DOWNLOAD PARAMETERS.JSON
+  # 4) DOWNLOAD PARAMETERS.JSON
   # ------------------------------------------------------------
   - name: "gcr.io/cloud-builders/gsutil"
     id: "fetch-params"
@@ -59,7 +74,7 @@ steps:
       - .
 
   # ------------------------------------------------------------
-  # 4) SUBMIT PIPELINE TO VERTEX AI
+  # 5) SUBMIT PIPELINE TO VERTEX AI
   # ------------------------------------------------------------
   - name: ${_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/pipeline-executor:0.0.1
     id: "submit-pipeline"
