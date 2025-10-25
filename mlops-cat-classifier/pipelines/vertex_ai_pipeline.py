@@ -419,12 +419,12 @@ if __name__ == "__main__":
     if pipeline_type == "gcs":
         compiler.Compiler().compile(
             pipeline_func=cat_classifier_pipeline_gcs,
-            package_path='cat_classifier_training_pipeline_gcs.yaml'
+            package_path="mlops-cat-classifier/pipelines/cat_classifier_training_pipeline.yaml",
         )
-        print("✓ GCS-based pipeline compiled to: cat_classifier_training_pipeline_gcs.yaml")
+        print("✓ GCS-based pipeline compiled to: mlops-cat-classifier/pipelines/cat_classifier_training_pipeline.yaml")
     else:
         compiler.Compiler().compile(
             pipeline_func=cat_classifier_pipeline_url,
-            package_path='cat_classifier_training_pipeline_url.yaml'
+            package_path="mlops-cat-classifier/pipelines/cat_classifier_training_pipeline.yaml",
         )
-        print("✓ URL-based pipeline compiled to: cat_classifier_training_pipeline_url.yaml")
+        print("✓ URL-based pipeline compiled to: mlops-cat-classifier/pipelines/cat_classifier_training_pipeline.yaml")
