@@ -10,10 +10,13 @@ steps:
       - -c
       - |
         set -e
-        echo "🧪 Installing test dependencies..."
+        echo "🧪 Installing test deps..."
         pip install --no-cache-dir pytest pillow numpy tensorflow==2.15.0 flask
+        echo "🧪 Checking workspace contents..."
+        pwd
+        ls -R /workspace
         echo "🧪 Running tests..."
-        pytest /workspace/tests --maxfail=1 --disable-warnings -q
+        pytest tests --maxfail=1 --disable-warnings -v
 
   # ------------------------------------------------------------
   # 2) COMPILE PIPELINE (Python → YAML)
