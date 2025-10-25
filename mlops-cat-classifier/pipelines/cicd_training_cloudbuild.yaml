@@ -76,7 +76,7 @@ steps:
   # ------------------------------------------------------------
   # 5) SUBMIT PIPELINE TO VERTEX AI
   # ------------------------------------------------------------
-  - name: ${_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/pipeline-executor:0.0.1
+  - name: ${_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_EXECUTOR_IMAGE_NAME}:$SHORT_SHA
     id: "submit-pipeline"
     waitFor: ["fetch-params"]
     args:
