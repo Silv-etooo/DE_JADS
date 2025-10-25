@@ -2,15 +2,19 @@ mlops-cat-classifier/ <br>
 ├── notebooks/ <br>
 │ └── cat_classifier.ipynb # Jupyter notebook for developing/testing the model <br>
 │ <br>
-├── src/ <br>
-│ ├── (x remove we dont need it) train.py # Training script of the CNN model <br>
+├──app/
+    ├── api/
+    │   ├── Dockerfile.api
+    │   ├── predict_api.py
+    │   ├── model/
+    │   │   └── cats_vs_dogs_model.keras
+    └── ui/
+        ├── Dockerfile.ui
+        └── ui_server.py
 │ ├── pipeline.py #(->run to generate the vertex_training.yaml) # Vertex AI pipeline definition (KFP) <br>
 │ ├── vertex_training.yaml # Vertex AI for continous training <br>
-│ ├── predict_api.py              # Flask service for serving predictions <br>
-│ └── templates/                  # HTML templates for Flask UI <br>
-│     └── index.html              # Upload form for image prediction <br>
 │ <br>
-├── (rename) Dockerfile.train -> Dockerfile.ui # Dockerfile for the training component <br>
+├── Dockerfile.ui # Dockerfile for the training component <br>
 ├── Dockerfile.api # Dockerfile for the prediction API service <br>
 ├── x (remove -> has to be split into two) cloudbuild.yaml # CI/CD config for GCP Cloud Build <br>
 ├── cicd_training.yaml # CI/CD training trat triggers vertex ai<br>

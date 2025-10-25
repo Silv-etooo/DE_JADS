@@ -1,0 +1,52 @@
+{
+  "steps": [
+    {
+      "name": "gcr.io/cloud-builders/gsutil",
+      "args": ["cp", "$MESSAGE", "./app/api/model/cats_vs_dogs_model.keras"]
+    },
+    {
+      "name": "gcr.io/cloud-builders/docker",
+      "args": ["build", "-t", "us-central1-docker.pkg.dev/$PROJECT_ID/cat-predict-repo/cat-predict-api:latest", "./app/api"]
+    },
+    {
+      "name": "gcr.io/cloud-builders/docker",
+      "args": ["build", "-t", "us-central1-docker.pkg.dev/$PROJECT_ID/cat-predict-repo/cat-predict-ui:latest", "./app/ui"]
+    },
+    {
+      "name": "gcr.io/cloud-builders/docker",
+      "args": ["push", "us-central1-docker.pkg.dev/$PROJECT_ID/cat-predict-repo/cat-predict-api:latest"]
+    },
+    {
+      "name": "gcr.io/cloud-builders/docker",
+      "args": ["push", "us-central1-docker.pkg.dev/$PROJECT_ID/cat-predict-repo/cat-predict-ui:latest"]
+    },
+    {
+      "name": "gcr.io/google.com/cloudsdktool/cloud-sdk",
+      "args": [
+        "run",
+        "deploy",
+        "cat-predict-api",
+        "--image",
+        "us-central1-docker.pkg.dev/$PROJECT_ID/cat-predict-repo/cat-predict-api:latest",
+        "--region",
+        "us-central1",
+        "--platform",
+        "managed",
+        "--port",
+        "5000",
+        "--allow-unauthenticated"
+      ]
+    },
+    {
+      "name": "gcr.io/google.com/cloudsdktool/cloud-sdk",
+      "entrypoint": "bash",
+      "args": [
+        "-c",
+        "API_URL=$(gcloud run services describe cat-predict-api --region=us-central1 --format='value(status.url)') && gcloud run deploy cat-predict-ui --image us-central1-docker.pkg.dev/$PROJECT_ID/cat-predict-repo/cat-predict-ui:latest --region us-central1 --platform managed --port 5000 --set-env-vars PREDICT_API_URL=$API_URL/predict  --allow-unauthenticated"
+      ]
+    }
+  ],
+  "options": {
+    "logging": "CLOUD_LOGGING_ONLY"
+  }
+}
