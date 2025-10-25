@@ -28,7 +28,7 @@ steps:
       - ${_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_EXECUTOR_IMAGE_NAME}:$SHORT_SHA
       - -t
       - ${_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_EXECUTOR_IMAGE_NAME}:latest
-      - ${_EXECUTOR_CONTEXT}   
+      - /workspace/mlops-cat-classifier/builder_tool/pipeline_executor
 
   # ------------------------------------------------------------
   # 2) COMPILE PIPELINE (Python → YAML)
