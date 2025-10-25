@@ -1,0 +1,92 @@
+steps:
+  # ------------------------------------------------------------
+  # 1) FETCH MODEL ARTIFACT
+  # Note: The $MESSAGE variable must be set in the trigger definition
+  # to point to the GCS location of the latest model (e.g., gs://bucket/model.keras).
+  # ------------------------------------------------------------
+  - name: "gcr.io/cloud-builders/gsutil"
+    id: "fetch-model"
+    args: 
+      - cp 
+      - "$MESSAGE" 
+      - "./app/api/model/cats_vs_dogs_model.keras"
+
+  # ------------------------------------------------------------
+  # 2) BUILD & PUSH API SERVICE (API is built from ./app/api context)
+  # ------------------------------------------------------------
+  - name: "gcr.io/cloud-builders/docker"
+    id: "build-api"
+    waitFor: ["fetch-model"]
+    args: 
+      - build 
+      - -t 
+      - us-central1-docker.pkg.dev/$PROJECT_ID/cat-predict-repo/cat-predict-api:latest
+      - "./app/api"
+
+  - name: "gcr.io/cloud-builders/docker"
+    id: "push-api"
+    waitFor: ["build-api"]
+    args: 
+      - push 
+      - us-central1-docker.pkg.dev/$PROJECT_ID/cat-predict-repo/cat-predict-api:latest
+
+  # ------------------------------------------------------------
+  # 3) BUILD & PUSH UI SERVICE (UI is built from ./app/ui context)
+  # ------------------------------------------------------------
+  - name: "gcr.io/cloud-builders/docker"
+    id: "build-ui"
+    waitFor: ["fetch-model"]
+    args: 
+      - build 
+      - -t 
+      - us-central1-docker.pkg.dev/$PROJECT_ID/cat-predict-repo/cat-predict-ui:latest 
+      - "./app/ui"
+
+  - name: "gcr.io/cloud-builders/docker"
+    id: "push-ui"
+    waitFor: ["build-ui"]
+    args: 
+      - push 
+      - us-central1-docker.pkg.dev/$PROJECT_ID/cat-predict-repo/cat-predict-ui:latest
+
+  # ------------------------------------------------------------
+  # 4) DEPLOY API SERVICE
+  # ------------------------------------------------------------
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    id: "deploy-api"
+    waitFor: ["push-api"]
+    args:
+      - run
+      - deploy
+      - cat-predict-api
+      - --image
+      - us-central1-docker.pkg.dev/$PROJECT_ID/cat-predict-repo/cat-predict-api:latest
+      - --region
+      - us-central1
+      - --platform
+      - managed
+      - --port
+      - "5000"
+      - --allow-unauthenticated
+
+  # ------------------------------------------------------------
+  # 5) DEPLOY UI SERVICE (Injecting the API URL)
+  # ------------------------------------------------------------
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    id: "deploy-ui"
+    waitFor: ["deploy-api", "push-ui"] # Must wait for API to be deployed to get its URL
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        API_URL=$(gcloud run services describe cat-predict-api --region=us-central1 --format='value(status.url)')
+        gcloud run deploy cat-predict-ui \
+          --image us-central1-docker.pkg.dev/$PROJECT_ID/cat-predict-repo/cat-predict-ui:latest \
+          --region us-central1 \
+          --platform managed \
+          --port 5000 \
+          --set-env-vars PREDICT_API_URL=$API_URL \
+          --allow-unauthenticated
+
+options:
+  logging: CLOUD_LOGGING_ONLY

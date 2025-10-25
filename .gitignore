@@ -34,10 +34,6 @@ build/
 # Logs
 *.log
 
-# Compiled pipeline files
-*.yaml
-!cloudbuild.yaml
-
 # Documentation 
 DATA_SETUP_GUIDE.md
 PIPELINE_README.md

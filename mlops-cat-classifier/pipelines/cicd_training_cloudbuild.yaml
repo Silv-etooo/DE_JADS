@@ -1,0 +1,58 @@
+steps:
+  # ------------------------------------------------------------
+  # 1) RUN UNIT TESTS
+  # ------------------------------------------------------------
+  - name: "python:3.10-slim"
+    id: "run-tests"
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -e
+        echo "🧪 Installing test dependencies..."
+        pip install --no-cache-dir pytest pillow numpy tensorflow==2.15.0 flask
+        echo "🧪 Running tests..."
+        pytest ${_TEST_DIR:-tests} --maxfail=1 --disable-warnings -q
+
+  # ------------------------------------------------------------
+  # 2) COMPILE PIPELINE (Python → YAML)
+  # ------------------------------------------------------------
+  - name: "python:3.10-slim"
+    id: "compile-pipeline"
+    waitFor: ["run-tests"]
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -e
+        echo "🧩 Installing Vertex AI / KFP SDK..."
+        pip install --no-cache-dir kfp==2.14.4 google-cloud-aiplatform==1.118.0
+        echo "🧩 Compiling Vertex AI pipeline → ${_PIPELINE_YAML}"
+        python ${_PIPELINE_PY_PATH:-pipelines/vertex_ai_pipeline.py}
+        test -f "${_PIPELINE_YAML}" && echo "✅ Pipeline compiled."
+
+  # ------------------------------------------------------------
+  # 3) DOWNLOAD PARAMETERS.JSON
+  # ------------------------------------------------------------
+  - name: "gcr.io/cloud-builders/gsutil"
+    id: "fetch-params"
+    waitFor: ["compile-pipeline"]
+    args:
+      - cp
+      - gs://${_CONF_REPO}/parameters.json
+      - .
+
+  # ------------------------------------------------------------
+  # 4) SUBMIT PIPELINE TO VERTEX AI
+  # ------------------------------------------------------------
+  - name: ${_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/pipeline-executor:0.0.1
+    id: "submit-pipeline"
+    waitFor: ["fetch-params"]
+    args:
+      - --name=diabetes-predictor-pipeline-$SHORT_SHA
+      - --pipeline_def=${_PIPELINE_YAML}
+      - --pipeline_root=gs://${_TEMP_REPO}
+      - --parameter_dict=./parameters.json
+
+options:
+  logging: CLOUD_LOGGING_ONLY
