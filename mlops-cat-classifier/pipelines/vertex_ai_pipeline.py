@@ -295,9 +295,10 @@ def evaluate_model(
 def upload_model_to_gcs(
     project_id: str,
     model_bucket: str,
-    model: Input[Model]
+    model: Input[Model],
+    version: str = "v2"  # Force component refresh
 ):
-    """Upload trained model to Google Cloud Storage"""
+    """Upload trained model to Google Cloud Storage - Version 2 with detailed logging"""
     from google.cloud import storage
     from google.cloud.exceptions import GoogleCloudError
     import logging
@@ -425,7 +426,8 @@ def cat_classifier_pipeline_gcs(
         upload_task = upload_model_to_gcs(
             project_id=project_id,
             model_bucket=model_bucket,
-            model=train_task.outputs["model_output"]
+            model=train_task.outputs["model_output"],
+            version="v2"
         )
 
 
@@ -471,7 +473,8 @@ def cat_classifier_pipeline_url(
         upload_task = upload_model_to_gcs(
             project_id=project_id,
             model_bucket=model_bucket,
-            model=train_task.outputs["model_output"]
+            model=train_task.outputs["model_output"],
+            version="v2"
         )
 
 
