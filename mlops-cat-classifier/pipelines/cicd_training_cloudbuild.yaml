@@ -56,11 +56,11 @@ steps:
       - -c
       - |
         set -e
-        echo "🧩 Installing Vertex AI / KFP SDK..."
+        echo "Installing Vertex AI / KFP SDK..."
         pip install --no-cache-dir kfp==2.14.4 google-cloud-aiplatform==1.118.0
-        echo "🧩 Compiling Vertex AI pipeline → ${_PIPELINE_YAML}"
+        echo "Compiling Vertex AI pipeline → ${_PIPELINE_YAML}"
         python mlops-cat-classifier/pipelines/vertex_ai_pipeline.py gcs
-        test -f "${_PIPELINE_YAML}" && echo "✅ Pipeline compiled."
+        test -f "${_PIPELINE_YAML}" && echo "Pipeline compiled."
 
   # ------------------------------------------------------------
   # 4) DOWNLOAD PARAMETERS.JSON
@@ -80,7 +80,7 @@ steps:
     id: "submit-pipeline"
     waitFor: ["fetch-params"]
     args:
-      - --name=diabetes-predictor-pipeline-$SHORT_SHA
+      - --name=cat-classifier-pipeline-$SHORT_SHA
       - --pipeline_def=${_PIPELINE_YAML}
       - --pipeline_root=gs://${_TEMP_REPO}
       - --parameter_dict=./parameters.json

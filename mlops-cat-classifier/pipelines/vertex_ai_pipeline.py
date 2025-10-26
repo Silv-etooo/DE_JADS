@@ -54,11 +54,20 @@ def download_cat_dog_data_from_gcs(
     logging.info(f"Downloaded to {zip_path}")
 
     # Extract dataset
+    logging.info("Extracting dataset...")
+    with zipfile.ZipFile(zip_path, "r") as zip_ref:
+        zip_ref.extractall(temp_dir)
+
+    # The zip contains cats_and_dogs_filtered folder, so the actual data is nested
     extract_dir = os.path.join(temp_dir, "cats_and_dogs_filtered")
-    if not os.path.exists(extract_dir):
-        logging.info("Extracting dataset...")
-        with zipfile.ZipFile(zip_path, "r") as zip_ref:
-            zip_ref.extractall(temp_dir)
+
+    # Check if we have the nested structure
+    if os.path.exists(os.path.join(extract_dir, "cats_and_dogs_filtered")):
+        extract_dir = os.path.join(extract_dir, "cats_and_dogs_filtered")
+
+    # Verify the train directory exists
+    if not os.path.exists(os.path.join(extract_dir, "train")):
+        raise FileNotFoundError(f"Train directory not found at {extract_dir}/train")
 
     # Save the extraction path for next component
     with open(dataset_output.path, 'w') as f:
@@ -94,10 +103,22 @@ def download_cat_dog_data_from_url(
         extract=False
     )
 
-    extract_dir = os.path.join(os.path.dirname(zip_path), "cats_and_dogs_filtered")
-    if not os.path.exists(extract_dir):
+    # Extract dataset
+    base_dir = os.path.dirname(zip_path)
+    if not os.path.exists(os.path.join(base_dir, "cats_and_dogs_filtered")):
         with zipfile.ZipFile(zip_path, "r") as zip_ref:
-            zip_ref.extractall(os.path.dirname(zip_path))
+            zip_ref.extractall(base_dir)
+
+    # The zip contains cats_and_dogs_filtered folder, so the actual data is nested
+    extract_dir = os.path.join(base_dir, "cats_and_dogs_filtered")
+
+    # Check if we have the nested structure
+    if os.path.exists(os.path.join(extract_dir, "cats_and_dogs_filtered")):
+        extract_dir = os.path.join(extract_dir, "cats_and_dogs_filtered")
+
+    # Verify the train directory exists
+    if not os.path.exists(os.path.join(extract_dir, "train")):
+        raise FileNotFoundError(f"Train directory not found at {extract_dir}/train")
 
     # Save the extraction path for next component
     with open(dataset_output.path, 'w') as f:
