@@ -1,15 +1,17 @@
 steps:
   # ------------------------------------------------------------
-  # 1) FETCH MODEL ARTIFACT
-  # Note: The $MESSAGE variable must be set in the trigger definition
-  # to point to the GCS location of the latest model (e.g., gs://bucket/model.keras).
+  #  1) Download model from GCS
   # ------------------------------------------------------------
-  - name: "gcr.io/cloud-builders/gsutil"
-    id: "fetch-model"
-    args: 
-      - cp 
-      - "$MESSAGE" 
-      - "./app/api/model/cats_vs_dogs_model.keras"
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'fetch-model'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "Downloading latest model..."
+        gsutil cp gs://mlops-model-output-de2025q8/exported_models/model.keras ./app/api/model/
+        ls -lh ./app/api/model/
 
   # ------------------------------------------------------------
   # 2) BUILD & PUSH API SERVICE (API is built from ./app/api context)
