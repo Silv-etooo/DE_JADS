@@ -23,7 +23,6 @@ steps:
       - build 
       - -t 
       - us-central1-docker.pkg.dev/$PROJECT_ID/mlops/cat-predict-api:latest
-
       - "./app/api"
 
   - name: "gcr.io/cloud-builders/docker"
