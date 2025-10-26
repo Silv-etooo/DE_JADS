@@ -64,6 +64,7 @@ steps:
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
     id: "deploy-api"
     waitFor: ["push-api"]
+    entrypoint: gcloud
     args:
       - run
       - deploy
