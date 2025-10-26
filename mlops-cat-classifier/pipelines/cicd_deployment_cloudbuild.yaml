@@ -23,7 +23,7 @@ steps:
     args: 
       - build 
       - -f
-      - "/workspace/mlops-cat-classifier/app/ui/Dockerfile.ui"
+      - "/workspace/mlops-cat-classifier/app/ui/Dockerfile.api"
       - -t 
       - us-central1-docker.pkg.dev/$PROJECT_ID/mlops/cat-predict-api:latest
       - "mlops-cat-classifier/app/api"
@@ -76,7 +76,13 @@ steps:
       - --platform
       - managed
       - --port
-      - "5000"
+      - "8080"
+      - --cpu
+      - "2"
+      - --memory
+      - "2Gi"
+      - --timeout
+      - "900"
       - --allow-unauthenticated
 
   # ------------------------------------------------------------

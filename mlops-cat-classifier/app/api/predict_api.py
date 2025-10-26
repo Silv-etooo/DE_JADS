@@ -9,7 +9,7 @@ import os
 app = Flask(__name__)
 
 # ---- Load own model ----
-MODEL_PATH = os.path.join(os.path.dirname(__file__), "model", "cats_vs_dogs_model.keras")
+MODEL_PATH = os.path.join(os.path.dirname(__file__), "model", "model.keras")
 print(f" Loading model from {MODEL_PATH} ...")
 
 try:
@@ -54,6 +54,7 @@ def predict():
 
 if __name__ == "__main__":
     # Cloud Run sets $PORT automatically
-    port = int(os.getenv("PORT", 5000))
+    port = int(os.getenv("PORT", 8080))
     print(f"🚀 Starting Cat Predictor API on port {port}...")
+    ## IMPORTANT: host must be 0.0.0.0 so Cloud Run can reach it
     app.run(host="0.0.0.0", port=port)
