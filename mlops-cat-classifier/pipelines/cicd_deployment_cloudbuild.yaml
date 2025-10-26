@@ -22,6 +22,8 @@ steps:
     waitFor: ["fetch-model"]
     args: 
       - build 
+      - -f
+      - "mlops-cat-classifier/app/api/Dockerfile.api"
       - -t 
       - us-central1-docker.pkg.dev/$PROJECT_ID/mlops/cat-predict-api:latest
       - "mlops-cat-classifier/app/api"
@@ -42,6 +44,8 @@ steps:
     waitFor: ["fetch-model"]
     args: 
       - build 
+      - "mlops-cat-classifier/app/ui/Dockerfile.ui"
+      - -t
       - -t 
       - us-central1-docker.pkg.dev/$PROJECT_ID/mlops/cat-predict-ui:latest
       - "mlops-cat-classifier/app/ui"
