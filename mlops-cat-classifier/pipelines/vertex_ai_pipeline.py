@@ -133,10 +133,10 @@ def train_cat_classifier(
 
     logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
-    # Configuration
+    # Configuration (TEMPORARY: reduced for testing)
     IMG_SIZE = 224
     BATCH_SIZE = 32
-    EPOCHS = 3
+    EPOCHS = 1  # Reduced from 3 to 1 for faster testing
     SEED = 42
     AUTOTUNE = tf.data.AUTOTUNE
 
@@ -202,24 +202,25 @@ def train_cat_classifier(
     logging.info("Training base model...")
     history = model.fit(train_ds, epochs=EPOCHS, validation_data=val_ds, verbose=1)
 
+    # TEMPORARY: Skip fine-tuning for faster testing
     # Fine-tuning
-    logging.info("Fine-tuning last 30 layers...")
-    base_model.trainable = True
-    for layer in base_model.layers[:-30]:
-        layer.trainable = False
+    # logging.info("Fine-tuning last 30 layers...")
+    # base_model.trainable = True
+    # for layer in base_model.layers[:-30]:
+    #     layer.trainable = False
 
-    model.compile(
-        optimizer=tf.keras.optimizers.Adam(1e-4),
-        loss='binary_crossentropy',
-        metrics=['accuracy', tf.keras.metrics.AUC(name='auc')]
-    )
+    # model.compile(
+    #     optimizer=tf.keras.optimizers.Adam(1e-4),
+    #     loss='binary_crossentropy',
+    #     metrics=['accuracy', tf.keras.metrics.AUC(name='auc')]
+    # )
 
-    history_fine = model.fit(train_ds, epochs=1, validation_data=val_ds, verbose=1)
+    # history_fine = model.fit(train_ds, epochs=1, validation_data=val_ds, verbose=1)
 
-    # Get final metrics
-    final_train_acc = float(history_fine.history['accuracy'][-1])
-    final_val_acc = float(history_fine.history['val_accuracy'][-1])
-    final_val_loss = float(history_fine.history['val_loss'][-1])
+    # Get final metrics (using base model history since we skipped fine-tuning)
+    final_train_acc = float(history.history['accuracy'][-1])
+    final_val_acc = float(history.history['val_accuracy'][-1])
+    final_val_loss = float(history.history['val_loss'][-1])
 
     logging.info(f"Training Accuracy: {final_train_acc:.4f}")
     logging.info(f"Validation Accuracy: {final_val_acc:.4f}")
@@ -298,31 +299,80 @@ def upload_model_to_gcs(
 ):
     """Upload trained model to Google Cloud Storage"""
     from google.cloud import storage
+    from google.cloud.exceptions import GoogleCloudError
     import logging
     import sys
     import os
 
     logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
-    # Construct source file path from KFP artifact
-    source_file = os.path.join(model.path, model.metadata.get('file_name', 'model.keras'))
+    try:
+        # Debug: Print all inputs
+        logging.info(f"=== Upload Model to GCS - Starting ===")
+        logging.info(f"Project ID: {project_id}")
+        logging.info(f"Model bucket: {model_bucket}")
+        logging.info(f"Model artifact path: {model.path}")
+        logging.info(f"Model metadata: {model.metadata}")
 
-    logging.info(f"Uploading model from: {source_file}")
+        # List contents of model artifact path
+        logging.info(f"Listing contents of {model.path}:")
+        if os.path.exists(model.path):
+            for item in os.listdir(model.path):
+                item_path = os.path.join(model.path, item)
+                size = os.path.getsize(item_path) if os.path.isfile(item_path) else 0
+                logging.info(f"  - {item} ({'file' if os.path.isfile(item_path) else 'dir'}, {size} bytes)")
+        else:
+            logging.error(f"Model path does not exist: {model.path}")
+            raise FileNotFoundError(f"Model artifact path not found: {model.path}")
 
-    # Verify file exists
-    if not os.path.exists(source_file):
-        raise FileNotFoundError(f"Model file not found at {source_file}")
+        # Construct source file path from KFP artifact
+        source_file = os.path.join(model.path, model.metadata.get('file_name', 'model.keras'))
+        logging.info(f"Source file path: {source_file}")
 
-    # Upload to GCS
-    client = storage.Client(project=project_id)
-    bucket = client.bucket(model_bucket)
+        # Verify file exists
+        if not os.path.exists(source_file):
+            logging.error(f"Model file not found at {source_file}")
+            raise FileNotFoundError(f"Model file not found at {source_file}")
 
-    model_filename = "cat_classifier_model.keras"
-    blob = bucket.blob(model_filename)
+        file_size = os.path.getsize(source_file)
+        logging.info(f"Model file size: {file_size / (1024*1024):.2f} MB")
 
-    blob.upload_from_filename(source_file)
+        # Initialize GCS client
+        logging.info("Initializing GCS client...")
+        client = storage.Client(project=project_id)
 
-    logging.info(f"✓ Model uploaded to gs://{model_bucket}/{model_filename}")
+        # Check if bucket exists
+        logging.info(f"Checking if bucket exists: {model_bucket}")
+        bucket = client.bucket(model_bucket)
+        if not bucket.exists():
+            logging.error(f"Bucket does not exist: {model_bucket}")
+            raise ValueError(f"Bucket does not exist: {model_bucket}")
+
+        logging.info(f"Bucket {model_bucket} exists and is accessible")
+
+        # Upload to GCS
+        model_filename = "cat_classifier_model.keras"
+        blob = bucket.blob(model_filename)
+
+        logging.info(f"Starting upload to gs://{model_bucket}/{model_filename}...")
+        blob.upload_from_filename(source_file)
+
+        logging.info(f"✓ Model uploaded successfully to gs://{model_bucket}/{model_filename}")
+        logging.info(f"✓ File size: {file_size / (1024*1024):.2f} MB")
+
+    except FileNotFoundError as e:
+        logging.error(f"File not found error: {e}")
+        raise
+    except GoogleCloudError as e:
+        logging.error(f"Google Cloud error: {e}")
+        logging.error(f"Error details: {type(e).__name__}")
+        raise
+    except Exception as e:
+        logging.error(f"Unexpected error during upload: {e}")
+        logging.error(f"Error type: {type(e).__name__}")
+        import traceback
+        logging.error(f"Traceback: {traceback.format_exc()}")
+        raise
 
 
 # ============================================================================
