@@ -44,6 +44,7 @@ steps:
     waitFor: ["build-api"]
     args: 
       - build 
+      - -f
       - "mlops-cat-classifier/app/ui/Dockerfile.ui"
       - -t
       - us-central1-docker.pkg.dev/$PROJECT_ID/mlops/cat-predict-ui:latest
