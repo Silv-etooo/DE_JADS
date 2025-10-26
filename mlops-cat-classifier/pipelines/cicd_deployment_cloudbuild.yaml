@@ -46,7 +46,6 @@ steps:
       - build 
       - "mlops-cat-classifier/app/ui/Dockerfile.ui"
       - -t
-      - -t 
       - us-central1-docker.pkg.dev/$PROJECT_ID/mlops/cat-predict-ui:latest
       - "mlops-cat-classifier/app/ui"
 
