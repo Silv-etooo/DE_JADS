@@ -64,7 +64,7 @@ steps:
       - deploy
       - cat-predict-api
       - --image
-      - - us-central1-docker.pkg.dev/$PROJECT_ID/mlops/cat-predict-api:latest
+      - us-central1-docker.pkg.dev/$PROJECT_ID/mlops/cat-predict-api:latest
       - --region
       - us-central1
       - --platform
