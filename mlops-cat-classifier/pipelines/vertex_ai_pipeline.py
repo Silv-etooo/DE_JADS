@@ -53,27 +53,20 @@ def download_cat_dog_data_from_gcs(
 
     logging.info(f"Downloaded to {zip_path}")
 
-    # Extract dataset
+    # Extract dataset directly to the KFP artifact path
     logging.info("Extracting dataset...")
     with zipfile.ZipFile(zip_path, "r") as zip_ref:
-        zip_ref.extractall(temp_dir)
+        zip_ref.extractall(dataset_output.path)
 
-    # The zip contains cats_and_dogs_filtered folder, so the actual data is nested
-    extract_dir = os.path.join(temp_dir, "cats_and_dogs_filtered")
-
-    # Check if we have the nested structure
-    if os.path.exists(os.path.join(extract_dir, "cats_and_dogs_filtered")):
-        extract_dir = os.path.join(extract_dir, "cats_and_dogs_filtered")
+    # The zip contains cats_and_dogs_filtered folder at the root
+    extract_dir = os.path.join(dataset_output.path, "cats_and_dogs_filtered")
 
     # Verify the train directory exists
     if not os.path.exists(os.path.join(extract_dir, "train")):
         raise FileNotFoundError(f"Train directory not found at {extract_dir}/train")
 
-    # Save the extraction path for next component
-    with open(dataset_output.path, 'w') as f:
-        f.write(extract_dir)
-
-    logging.info(f"Dataset extracted to: {extract_dir}")
+    logging.info(f"Dataset extracted to KFP artifact path: {dataset_output.path}")
+    logging.info(f"Dataset directory: {extract_dir}")
 
 
 # ============================================================================
@@ -103,28 +96,20 @@ def download_cat_dog_data_from_url(
         extract=False
     )
 
-    # Extract dataset
-    base_dir = os.path.dirname(zip_path)
-    if not os.path.exists(os.path.join(base_dir, "cats_and_dogs_filtered")):
-        with zipfile.ZipFile(zip_path, "r") as zip_ref:
-            zip_ref.extractall(base_dir)
+    # Extract dataset directly to the KFP artifact path
+    logging.info("Extracting dataset...")
+    with zipfile.ZipFile(zip_path, "r") as zip_ref:
+        zip_ref.extractall(dataset_output.path)
 
-    # The zip contains cats_and_dogs_filtered folder, so the actual data is nested
-    extract_dir = os.path.join(base_dir, "cats_and_dogs_filtered")
-
-    # Check if we have the nested structure
-    if os.path.exists(os.path.join(extract_dir, "cats_and_dogs_filtered")):
-        extract_dir = os.path.join(extract_dir, "cats_and_dogs_filtered")
+    # The zip contains cats_and_dogs_filtered folder at the root
+    extract_dir = os.path.join(dataset_output.path, "cats_and_dogs_filtered")
 
     # Verify the train directory exists
     if not os.path.exists(os.path.join(extract_dir, "train")):
         raise FileNotFoundError(f"Train directory not found at {extract_dir}/train")
 
-    # Save the extraction path for next component
-    with open(dataset_output.path, 'w') as f:
-        f.write(extract_dir)
-
-    logging.info(f"Dataset extracted to: {extract_dir}")
+    logging.info(f"Dataset extracted to KFP artifact path: {dataset_output.path}")
+    logging.info(f"Dataset directory: {extract_dir}")
 
 
 # ============================================================================
@@ -159,9 +144,9 @@ def train_cat_classifier(
     tf.random.set_seed(SEED)
     np.random.seed(SEED)
 
-    # Read dataset path
-    with open(dataset_input.path, 'r') as f:
-        extract_dir = f.read().strip()
+    # Read dataset from KFP artifact path
+    # The dataset is extracted to dataset_input.path/cats_and_dogs_filtered
+    extract_dir = os.path.join(dataset_input.path, "cats_and_dogs_filtered")
 
     train_dir = os.path.join(extract_dir, "train")
     val_dir = os.path.join(extract_dir, "validation")
