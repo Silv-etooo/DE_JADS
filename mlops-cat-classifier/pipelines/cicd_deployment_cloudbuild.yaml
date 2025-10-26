@@ -10,9 +10,9 @@ steps:
       - '-c'
       - |
         echo "Downloading latest model..."
-        mkdir -p ./app/api/model
-        gsutil cp gs://mlops-model-output-de2025q8/cat_classifier_model.keras ./app/api/model/model.keras #path stuff
-        ls -lh ./app/api/model/
+        mkdir -p mlops-cat-classifier/app/api/model
+        gsutil cp gs://mlops-model-output-de2025q8/cat_classifier_model.keras mlops-cat-classifier/app/api/model/model.keras
+        ls -lh mlops-cat-classifier/app/api/model/
 
   # ------------------------------------------------------------
   # 2) BUILD & PUSH API SERVICE (API is built from ./app/api context)
@@ -24,7 +24,7 @@ steps:
       - build 
       - -t 
       - us-central1-docker.pkg.dev/$PROJECT_ID/mlops/cat-predict-api:latest
-      - "./app/api"
+      - "mlops-cat-classifier/app/api"
 
   - name: "gcr.io/cloud-builders/docker"
     id: "push-api"
@@ -44,7 +44,7 @@ steps:
       - build 
       - -t 
       - us-central1-docker.pkg.dev/$PROJECT_ID/mlops/cat-predict-ui:latest
-      - "./app/ui"
+      - "mlops-cat-classifier/app/ui"
 
   - name: "gcr.io/cloud-builders/docker"
     id: "push-ui"
