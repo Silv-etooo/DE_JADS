@@ -1,7 +1,7 @@
 {
   "project_id": "firstproject-472117",
-  "data_bucket": "data_catclassifier",
+  "data_bucket": "cat_data_de2025",
   "dataset_zip_filename": "cats_and_dogs_filtered.zip",
-  "model_bucket": "cat_model",
+  "model_bucket": "mlops-model-output-de2025q8",
   "min_accuracy_threshold": 0.6
 }

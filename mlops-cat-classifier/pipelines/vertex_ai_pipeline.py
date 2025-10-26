@@ -225,12 +225,15 @@ def train_cat_classifier(
     logging.info(f"Validation Accuracy: {final_val_acc:.4f}")
     logging.info(f"Validation Loss: {final_val_loss:.4f}")
 
-    # Save model
+    # Save model to KFP artifact path
+    import os
+    os.makedirs(model_output.path, exist_ok=True)
+
     model_output.metadata["framework"] = "tensorflow"
     model_output.metadata["model_type"] = "MobileNetV2"
-    model_output.metadata["file_type"] = ".keras"
+    model_output.metadata["file_name"] = "model.keras"
 
-    model_file = model_output.path + ".keras"
+    model_file = os.path.join(model_output.path, "model.keras")
     model.save(model_file)
     logging.info(f"Model saved to {model_file}")
 
@@ -297,16 +300,26 @@ def upload_model_to_gcs(
     from google.cloud import storage
     import logging
     import sys
+    import os
 
     logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
+    # Construct source file path from KFP artifact
+    source_file = os.path.join(model.path, model.metadata.get('file_name', 'model.keras'))
+
+    logging.info(f"Uploading model from: {source_file}")
+
+    # Verify file exists
+    if not os.path.exists(source_file):
+        raise FileNotFoundError(f"Model file not found at {source_file}")
+
+    # Upload to GCS
     client = storage.Client(project=project_id)
     bucket = client.bucket(model_bucket)
 
-    model_filename = f"cat_classifier_model{model.metadata['file_type']}"
+    model_filename = "cat_classifier_model.keras"
     blob = bucket.blob(model_filename)
 
-    source_file = model.path + model.metadata['file_type']
     blob.upload_from_filename(source_file)
 
     logging.info(f"✓ Model uploaded to gs://{model_bucket}/{model_filename}")
