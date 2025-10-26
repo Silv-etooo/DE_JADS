@@ -76,19 +76,36 @@ steps:
   # ------------------------------------------------------------
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
     id: "deploy-ui"
-    waitFor: ["deploy-api", "push-ui"] # Must wait for API to be deployed to get its URL
+    waitFor: ["deploy-api", "push-ui"]
     entrypoint: bash
     args:
       - -c
       - |
-        API_URL=$(gcloud run services describe cat-predict-api --region=us-central1 --format='value(status.url)')
+        API_URL=$(gcloud run services describe cat-predict-api --region=${_REGION} --format='value(status.url)')
         gcloud run deploy cat-predict-ui \
           --image us-central1-docker.pkg.dev/$PROJECT_ID/cat-predict-repo/cat-predict-ui:latest \
-          --region us-central1 \
+          --region ${_REGION} \
           --platform managed \
           --port 5000 \
           --set-env-vars PREDICT_API_URL=$API_URL \
           --allow-unauthenticated
+
+  # 6) (or last) Print final URLs so you can click them from the build log
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    id: "print-service-urls"
+    waitFor: ["deploy-api", "deploy-ui"]
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        API_URL=$(gcloud run services describe cat-predict-api --region ${_REGION:-us-central1} --format='value(status.url)')
+        UI_URL=$(gcloud run services describe cat-predict-ui  --region ${_REGION:-us-central1} --format='value(status.url)')
+        echo "=========================================="
+        echo "✅ Deployed services:"
+        echo "API URL: $API_URL"
+        echo "UI  URL: $UI_URL"
+        echo "=========================================="
+
 
 options:
   logging: CLOUD_LOGGING_ONLY
