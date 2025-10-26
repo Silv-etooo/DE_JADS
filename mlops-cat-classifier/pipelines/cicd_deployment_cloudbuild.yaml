@@ -23,7 +23,7 @@ steps:
     args: 
       - build 
       - -f
-      - "/workspace/mlops-cat-classifier/app/ui/Dockerfile.api"
+      - "/workspace/mlops-cat-classifier/app/api/Dockerfile.api"
       - -t 
       - us-central1-docker.pkg.dev/$PROJECT_ID/mlops/cat-predict-api:latest
       - "mlops-cat-classifier/app/api"
