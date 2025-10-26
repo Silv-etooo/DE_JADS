@@ -10,7 +10,8 @@ steps:
       - '-c'
       - |
         echo "Downloading latest model..."
-        gsutil cp gs://mlops-model-output-de2025q8/exported_models/model.keras ./app/api/model/
+        mkdir -p ./app/api/model
+        gsutil cp gs://mlops-model-output-de2025q8/cat_classifier_model.keras ./app/api/model/model.keras #path stuff
         ls -lh ./app/api/model/
 
   # ------------------------------------------------------------
