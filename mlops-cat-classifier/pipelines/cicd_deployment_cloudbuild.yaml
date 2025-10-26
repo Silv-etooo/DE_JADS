@@ -118,3 +118,6 @@ steps:
       - |
         echo "Hello Cloud Build — base test OK."
         gcloud --version
+
+options:
+  logging: CLOUD_LOGGING_ONLY
