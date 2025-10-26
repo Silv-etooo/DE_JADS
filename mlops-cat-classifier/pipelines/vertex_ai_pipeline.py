@@ -133,10 +133,10 @@ def train_cat_classifier(
 
     logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
-    # Configuration (TEMPORARY: reduced for testing)
+    # Configuration
     IMG_SIZE = 224
     BATCH_SIZE = 32
-    EPOCHS = 1  # Reduced from 3 to 1 for faster testing
+    EPOCHS = 3
     SEED = 42
     AUTOTUNE = tf.data.AUTOTUNE
 
@@ -202,25 +202,24 @@ def train_cat_classifier(
     logging.info("Training base model...")
     history = model.fit(train_ds, epochs=EPOCHS, validation_data=val_ds, verbose=1)
 
-    # TEMPORARY: Skip fine-tuning for faster testing
     # Fine-tuning
-    # logging.info("Fine-tuning last 30 layers...")
-    # base_model.trainable = True
-    # for layer in base_model.layers[:-30]:
-    #     layer.trainable = False
+    logging.info("Fine-tuning last 30 layers...")
+    base_model.trainable = True
+    for layer in base_model.layers[:-30]:
+        layer.trainable = False
 
-    # model.compile(
-    #     optimizer=tf.keras.optimizers.Adam(1e-4),
-    #     loss='binary_crossentropy',
-    #     metrics=['accuracy', tf.keras.metrics.AUC(name='auc')]
-    # )
+    model.compile(
+        optimizer=tf.keras.optimizers.Adam(1e-4),
+        loss='binary_crossentropy',
+        metrics=['accuracy', tf.keras.metrics.AUC(name='auc')]
+    )
 
-    # history_fine = model.fit(train_ds, epochs=1, validation_data=val_ds, verbose=1)
+    history_fine = model.fit(train_ds, epochs=1, validation_data=val_ds, verbose=1)
 
-    # Get final metrics (using base model history since we skipped fine-tuning)
-    final_train_acc = float(history.history['accuracy'][-1])
-    final_val_acc = float(history.history['val_accuracy'][-1])
-    final_val_loss = float(history.history['val_loss'][-1])
+    # Get final metrics
+    final_train_acc = float(history_fine.history['accuracy'][-1])
+    final_val_acc = float(history_fine.history['val_accuracy'][-1])
+    final_val_loss = float(history_fine.history['val_loss'][-1])
 
     logging.info(f"Training Accuracy: {final_train_acc:.4f}")
     logging.info(f"Validation Accuracy: {final_val_acc:.4f}")
