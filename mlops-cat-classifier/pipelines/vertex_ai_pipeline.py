@@ -376,6 +376,40 @@ def upload_model_to_gcs(
 
 
 # ============================================================================
+# Pipeline Component 5: Publish Pub/Sub Message
+# ============================================================================
+@dsl.component(
+    packages_to_install=["google-cloud-pubsub"],
+    base_image="python:3.10-slim"
+)
+def publish_model_trained_message(
+    project_id: str,
+    model_bucket: str,
+    topic_id: str = "model-trained"
+):
+    """Publishes a Pub/Sub message announcing that model training is complete."""
+    from google.cloud import pubsub_v1
+    import json, datetime, logging, sys
+
+    logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+    publisher = pubsub_v1.PublisherClient()
+    topic_path = publisher.topic_path(project_id, topic_id)
+
+    message = {
+        "model_bucket": model_bucket,
+        "model_path": f"gs://{model_bucket}/cat_classifier_model.keras",
+        "status": "TRAINING_COMPLETE",
+        "timestamp": datetime.datetime.utcnow().isoformat() + "Z"
+    }
+
+    message_bytes = json.dumps(message).encode("utf-8")
+    future = publisher.publish(topic_path, message_bytes)
+    future.result()  # wait for confirmation
+    logging.info(f"✅ Published message to {topic_path}: {message}")
+
+
+
+# ============================================================================
 # Define the Pipeline (Using GCS Data Bucket)
 # ============================================================================
 @kfp.dsl.pipeline(
@@ -428,6 +462,13 @@ def cat_classifier_pipeline_gcs(
             model=train_task.outputs["model_output"],
             version="v2"
         )
+
+        # Step 5: Publish Pub/Sub message to trigger deployment
+        publish_message_task = publish_model_trained_message(
+            project_id=project_id,
+            model_bucket=model_bucket,
+            topic_id="model-trained"   # must match your Cloud Build trigger topic
+        ).after(upload_task)
 
 
 # ============================================================================
