@@ -87,7 +87,7 @@ steps:
           --region ${_REGION} \
           --platform managed \
           --port 5000 \
-          --set-env-vars PREDICT_API_URL=$API_URL \
+          --set-env-vars PREDICT_API_URL=$$API_URL \
           --allow-unauthenticated
 
   # 6) (or last) Print final URLs so you can click them from the build log
