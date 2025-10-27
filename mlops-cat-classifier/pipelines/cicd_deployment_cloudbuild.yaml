@@ -65,26 +65,23 @@ steps:
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
     id: "deploy-api"
     waitFor: ["push-api"]
-    entrypoint: gcloud
+    entrypoint: bash
     args:
-      - run
-      - deploy
-      - cat-predict-api
-      - --image
-      - us-central1-docker.pkg.dev/$PROJECT_ID/mlops/cat-predict-api:latest
-      - --region
-      - us-central1
-      - --platform
-      - managed
-      - --port
-      - "8080"
-      - --cpu
-      - "2"
-      - --memory
-      - "2Gi"
-      - --timeout
-      - "900"
-      - --allow-unauthenticated
+      - -c
+      - |
+        gcloud run deploy cat-predict-api \
+          --image us-central1-docker.pkg.dev/$PROJECT_ID/mlops/cat-predict-api:latest \
+          --region us-central1 \
+          --platform managed \
+          --port 8080 \
+          --cpu 2 \
+          --memory 2Gi \
+          --timeout 900 \
+          --allow-unauthenticated \
+          --format='value(status.url)' > /workspace/api_url.txt
+
+        echo "=== API Deployed ==="
+        cat /workspace/api_url.txt
 
   # ------------------------------------------------------------
   # 5) DEPLOY UI SERVICE (Injecting the API URL)
@@ -96,10 +93,14 @@ steps:
     args:
       - -c
       - |
-        API_URL=$(gcloud run services describe cat-predict-api --region=${_REGION:-us-central1} --format='value(status.url)')
+        echo "=== Reading API URL from file ==="
+        API_URL=$(cat /workspace/api_url.txt)
+        echo "API_URL: $$API_URL"
+        echo "Setting PREDICT_API_URL to: $$API_URL/predict"
+
         gcloud run deploy cat-predict-ui \
           --image us-central1-docker.pkg.dev/$PROJECT_ID/mlops/cat-predict-ui:latest \
-          --region ${_REGION:-us-central1} \
+          --region us-central1 \
           --platform managed \
           --port 5000 \
           --set-env-vars PREDICT_API_URL=$$API_URL/predict \
