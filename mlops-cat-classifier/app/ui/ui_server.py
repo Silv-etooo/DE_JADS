@@ -38,7 +38,7 @@ def proxy_predict():
 
     try:
         logger.info(f"Sending POST request to {PREDICT_API_URL}")
-        response = requests.post(PREDICT_API_URL, files=files, timeout=30)
+        response = requests.post(PREDICT_API_URL, files=files, timeout=120)
         logger.info(f"API response status: {response.status_code}")
         logger.info(f"API response body: {response.text[:200]}")
         return jsonify(response.json()), response.status_code

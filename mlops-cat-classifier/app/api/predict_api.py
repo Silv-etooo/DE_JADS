@@ -50,22 +50,46 @@ def health():
 
 @app.route("/predict", methods=["POST"])
 def predict():
+    import time
+    start_time = time.time()
+    logger.info("Predict endpoint called")
+
     if "file" not in request.files:
+        logger.error("No file in request")
         return jsonify({"error": "No file uploaded"}), 400
 
     file = request.files["file"]
-    img = Image.open(io.BytesIO(file.read()))
-    arr = prepare_image(img)
+    logger.info(f"File received: {file.filename}")
 
-    preds = model.predict(arr)
-    confidence = float(preds[0][0])  # assuming model outputs single sigmoid neuron
+    try:
+        logger.info("Opening image...")
+        img = Image.open(io.BytesIO(file.read()))
+        logger.info(f"Image opened: size={img.size}, mode={img.mode}")
 
-    is_cat = confidence < 0.5
-    return jsonify({
-        "is_cat": bool(is_cat),
-        "confidence": confidence if is_cat else 1 - confidence,
-        "detected_class": "cat" if is_cat else "not cat"
-    })
+        logger.info("Preparing image...")
+        arr = prepare_image(img)
+        logger.info(f"Image prepared: shape={arr.shape}")
+
+        logger.info("Running model prediction...")
+        pred_start = time.time()
+        preds = model.predict(arr)
+        pred_time = time.time() - pred_start
+        logger.info(f"Prediction completed in {pred_time:.2f}s")
+
+        confidence = float(preds[0][0])
+        is_cat = confidence < 0.5
+
+        total_time = time.time() - start_time
+        logger.info(f"Total request time: {total_time:.2f}s")
+
+        return jsonify({
+            "is_cat": bool(is_cat),
+            "confidence": confidence if is_cat else 1 - confidence,
+            "detected_class": "cat" if is_cat else "not cat"
+        })
+    except Exception as e:
+        logger.error(f"Error during prediction: {e}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     # Cloud Run sets $PORT automatically
