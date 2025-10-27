@@ -1,0 +1,990 @@
+# PIPELINE DEFINITION
+# Name: cat-classifier-training-pipeline-url
+# Description: Train and deploy a cat classifier with MobileNetV2 and EfficientNetB0 (data from public URL)
+# Inputs:
+#    min_accuracy_threshold: float [Default: 0.75]
+#    model_bucket: str
+#    project_id: str
+components:
+  comp-compare-models:
+    executorLabel: exec-compare-models
+    inputDefinitions:
+      parameters:
+        first_model_name:
+          parameterType: STRING
+        first_model_val_accuracy:
+          parameterType: NUMBER_DOUBLE
+        second_model_name:
+          parameterType: STRING
+        second_model_val_accuracy:
+          parameterType: NUMBER_DOUBLE
+    outputDefinitions:
+      parameters:
+        best_model:
+          parameterType: STRING
+        best_val_accuracy:
+          parameterType: NUMBER_DOUBLE
+  comp-condition-1:
+    dag:
+      tasks:
+        condition-2:
+          componentRef:
+            name: comp-condition-2
+          inputs:
+            artifacts:
+              pipelinechannel--train-cat-classifier-mobilenet-model_output:
+                componentInputArtifact: pipelinechannel--train-cat-classifier-mobilenet-model_output
+            parameters:
+              pipelinechannel--compare-models-best_model:
+                componentInputParameter: pipelinechannel--compare-models-best_model
+              pipelinechannel--evaluate-model-Output:
+                componentInputParameter: pipelinechannel--evaluate-model-Output
+              pipelinechannel--model_bucket:
+                componentInputParameter: pipelinechannel--model_bucket
+              pipelinechannel--project_id:
+                componentInputParameter: pipelinechannel--project_id
+          taskInfo:
+            name: condition-2
+          triggerPolicy:
+            condition: inputs.parameter_values['pipelinechannel--compare-models-best_model']
+              == 'mobilenet_v2'
+    inputDefinitions:
+      artifacts:
+        pipelinechannel--train-cat-classifier-mobilenet-model_output:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+      parameters:
+        pipelinechannel--compare-models-best_model:
+          parameterType: STRING
+        pipelinechannel--evaluate-model-Output:
+          parameterType: STRING
+        pipelinechannel--model_bucket:
+          parameterType: STRING
+        pipelinechannel--project_id:
+          parameterType: STRING
+  comp-condition-2:
+    dag:
+      tasks:
+        upload-model-to-gcs:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-upload-model-to-gcs
+          inputs:
+            artifacts:
+              model:
+                componentInputArtifact: pipelinechannel--train-cat-classifier-mobilenet-model_output
+            parameters:
+              model_bucket:
+                componentInputParameter: pipelinechannel--model_bucket
+              project_id:
+                componentInputParameter: pipelinechannel--project_id
+              version:
+                runtimeValue:
+                  constant: v2
+          taskInfo:
+            name: upload-model-to-gcs
+    inputDefinitions:
+      artifacts:
+        pipelinechannel--train-cat-classifier-mobilenet-model_output:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+      parameters:
+        pipelinechannel--compare-models-best_model:
+          parameterType: STRING
+        pipelinechannel--evaluate-model-Output:
+          parameterType: STRING
+        pipelinechannel--model_bucket:
+          parameterType: STRING
+        pipelinechannel--project_id:
+          parameterType: STRING
+  comp-condition-3:
+    dag:
+      tasks:
+        condition-4:
+          componentRef:
+            name: comp-condition-4
+          inputs:
+            artifacts:
+              pipelinechannel--train-cat-classifier-efficientnet-model_output:
+                componentInputArtifact: pipelinechannel--train-cat-classifier-efficientnet-model_output
+            parameters:
+              pipelinechannel--compare-models-best_model:
+                componentInputParameter: pipelinechannel--compare-models-best_model
+              pipelinechannel--evaluate-model-2-Output:
+                componentInputParameter: pipelinechannel--evaluate-model-2-Output
+              pipelinechannel--model_bucket:
+                componentInputParameter: pipelinechannel--model_bucket
+              pipelinechannel--project_id:
+                componentInputParameter: pipelinechannel--project_id
+          taskInfo:
+            name: condition-4
+          triggerPolicy:
+            condition: inputs.parameter_values['pipelinechannel--compare-models-best_model']
+              == 'efficientnet_b0'
+    inputDefinitions:
+      artifacts:
+        pipelinechannel--train-cat-classifier-efficientnet-model_output:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+      parameters:
+        pipelinechannel--compare-models-best_model:
+          parameterType: STRING
+        pipelinechannel--evaluate-model-2-Output:
+          parameterType: STRING
+        pipelinechannel--model_bucket:
+          parameterType: STRING
+        pipelinechannel--project_id:
+          parameterType: STRING
+  comp-condition-4:
+    dag:
+      tasks:
+        upload-model-to-gcs-2:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-upload-model-to-gcs-2
+          inputs:
+            artifacts:
+              model:
+                componentInputArtifact: pipelinechannel--train-cat-classifier-efficientnet-model_output
+            parameters:
+              model_bucket:
+                componentInputParameter: pipelinechannel--model_bucket
+              project_id:
+                componentInputParameter: pipelinechannel--project_id
+              version:
+                runtimeValue:
+                  constant: v2
+          taskInfo:
+            name: upload-model-to-gcs-2
+    inputDefinitions:
+      artifacts:
+        pipelinechannel--train-cat-classifier-efficientnet-model_output:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+      parameters:
+        pipelinechannel--compare-models-best_model:
+          parameterType: STRING
+        pipelinechannel--evaluate-model-2-Output:
+          parameterType: STRING
+        pipelinechannel--model_bucket:
+          parameterType: STRING
+        pipelinechannel--project_id:
+          parameterType: STRING
+  comp-download-cat-dog-data-from-url:
+    executorLabel: exec-download-cat-dog-data-from-url
+    outputDefinitions:
+      artifacts:
+        dataset_output:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+  comp-evaluate-model:
+    executorLabel: exec-evaluate-model
+    inputDefinitions:
+      parameters:
+        min_accuracy_threshold:
+          defaultValue: 0.75
+          isOptional: true
+          parameterType: NUMBER_DOUBLE
+        train_accuracy:
+          parameterType: NUMBER_DOUBLE
+        val_accuracy:
+          parameterType: NUMBER_DOUBLE
+        val_loss:
+          parameterType: NUMBER_DOUBLE
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-evaluate-model-2:
+    executorLabel: exec-evaluate-model-2
+    inputDefinitions:
+      parameters:
+        min_accuracy_threshold:
+          defaultValue: 0.75
+          isOptional: true
+          parameterType: NUMBER_DOUBLE
+        train_accuracy:
+          parameterType: NUMBER_DOUBLE
+        val_accuracy:
+          parameterType: NUMBER_DOUBLE
+        val_loss:
+          parameterType: NUMBER_DOUBLE
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-train-cat-classifier-efficientnet:
+    executorLabel: exec-train-cat-classifier-efficientnet
+    inputDefinitions:
+      artifacts:
+        dataset_input:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+    outputDefinitions:
+      artifacts:
+        metrics_output:
+          artifactType:
+            schemaTitle: system.Metrics
+            schemaVersion: 0.0.1
+        model_output:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+      parameters:
+        train_accuracy:
+          parameterType: NUMBER_DOUBLE
+        val_accuracy:
+          parameterType: NUMBER_DOUBLE
+        val_loss:
+          parameterType: NUMBER_DOUBLE
+  comp-train-cat-classifier-mobilenet:
+    executorLabel: exec-train-cat-classifier-mobilenet
+    inputDefinitions:
+      artifacts:
+        dataset_input:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+    outputDefinitions:
+      artifacts:
+        metrics_output:
+          artifactType:
+            schemaTitle: system.Metrics
+            schemaVersion: 0.0.1
+        model_output:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+      parameters:
+        train_accuracy:
+          parameterType: NUMBER_DOUBLE
+        val_accuracy:
+          parameterType: NUMBER_DOUBLE
+        val_loss:
+          parameterType: NUMBER_DOUBLE
+  comp-upload-model-to-gcs:
+    executorLabel: exec-upload-model-to-gcs
+    inputDefinitions:
+      artifacts:
+        model:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+      parameters:
+        model_bucket:
+          parameterType: STRING
+        project_id:
+          parameterType: STRING
+        version:
+          defaultValue: v2
+          isOptional: true
+          parameterType: STRING
+  comp-upload-model-to-gcs-2:
+    executorLabel: exec-upload-model-to-gcs-2
+    inputDefinitions:
+      artifacts:
+        model:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+      parameters:
+        model_bucket:
+          parameterType: STRING
+        project_id:
+          parameterType: STRING
+        version:
+          defaultValue: v2
+          isOptional: true
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-compare-models:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - compare_models
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef compare_models(\n    first_model_name: str,\n    first_model_val_accuracy:\
+          \ float,\n    second_model_name: str,\n    second_model_val_accuracy: float\n\
+          ) -> NamedTuple('CompareOutputs', best_model=str, best_val_accuracy=float):\n\
+          \    \"\"\"Compare two models based on validation accuracy.\"\"\"\n    import\
+          \ logging\n    import sys\n\n    logging.basicConfig(stream=sys.stdout,\
+          \ level=logging.INFO)\n\n    logging.info(\"Comparing candidate models...\"\
+          )\n    logging.info(f\"  {first_model_name} validation accuracy: {first_model_val_accuracy:.4f}\"\
+          )\n    logging.info(f\"  {second_model_name} validation accuracy: {second_model_val_accuracy:.4f}\"\
+          )\n\n    if first_model_val_accuracy >= second_model_val_accuracy:\n   \
+          \     logging.info(f\"Selecting {first_model_name} as best model\")\n  \
+          \      best_name = first_model_name\n        best_accuracy = first_model_val_accuracy\n\
+          \    else:\n        logging.info(f\"Selecting {second_model_name} as best\
+          \ model\")\n        best_name = second_model_name\n        best_accuracy\
+          \ = second_model_val_accuracy\n\n    outputs = NamedTuple(\n        'CompareOutputs',\n\
+          \        best_model=str,\n        best_val_accuracy=float\n    )\n\n   \
+          \ return outputs(best_name, best_accuracy)\n\n"
+        image: python:3.10-slim
+    exec-download-cat-dog-data-from-url:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - download_cat_dog_data_from_url
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'tensorflow==2.15.0'\
+          \  &&  python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef download_cat_dog_data_from_url(\n    dataset_output: Output[Dataset]\n\
+          ):\n    \"\"\"Download and prepare the cats vs dogs dataset from public\
+          \ URL\"\"\"\n    import os\n    import zipfile\n    import tensorflow as\
+          \ tf\n    import logging\n    import sys\n\n    logging.basicConfig(stream=sys.stdout,\
+          \ level=logging.INFO)\n\n    logging.info(\"Downloading cats and dogs dataset\
+          \ from public URL...\")\n    url = \"https://storage.googleapis.com/mledu-datasets/cats_and_dogs_filtered.zip\"\
+          \n    zip_path = tf.keras.utils.get_file(\n        \"cats_and_dogs_filtered.zip\"\
+          ,\n        origin=url,\n        extract=False\n    )\n\n    # Extract dataset\
+          \ directly to the KFP artifact path\n    logging.info(\"Extracting dataset...\"\
+          )\n    with zipfile.ZipFile(zip_path, \"r\") as zip_ref:\n        zip_ref.extractall(dataset_output.path)\n\
+          \n    # The zip contains cats_and_dogs_filtered folder at the root\n   \
+          \ extract_dir = os.path.join(dataset_output.path, \"cats_and_dogs_filtered\"\
+          )\n\n    # Verify the train directory exists\n    if not os.path.exists(os.path.join(extract_dir,\
+          \ \"train\")):\n        raise FileNotFoundError(f\"Train directory not found\
+          \ at {extract_dir}/train\")\n\n    logging.info(f\"Dataset extracted to\
+          \ KFP artifact path: {dataset_output.path}\")\n    logging.info(f\"Dataset\
+          \ directory: {extract_dir}\")\n\n"
+        image: python:3.10-slim
+    exec-evaluate-model:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - evaluate_model
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef evaluate_model(\n    train_accuracy: float,\n    val_accuracy:\
+          \ float,\n    val_loss: float,\n    min_accuracy_threshold: float = 0.75\n\
+          ) -> str:\n    \"\"\"Evaluate if model meets quality threshold\"\"\"\n \
+          \   import logging\n    import sys\n\n    logging.basicConfig(stream=sys.stdout,\
+          \ level=logging.INFO)\n\n    logging.info(f\"Model Evaluation:\")\n    logging.info(f\"\
+          \  Training Accuracy: {train_accuracy:.4f}\")\n    logging.info(f\"  Validation\
+          \ Accuracy: {val_accuracy:.4f}\")\n    logging.info(f\"  Validation Loss:\
+          \ {val_loss:.4f}\")\n    logging.info(f\"  Minimum Threshold: {min_accuracy_threshold:.4f}\"\
+          )\n\n    if val_accuracy >= min_accuracy_threshold:\n        logging.info(\"\
+          \u2713 Model PASSED quality check!\")\n        return \"PASS\"\n    else:\n\
+          \        logging.warning(\"\u2717 Model FAILED quality check!\")\n     \
+          \   return \"FAIL\"\n\n"
+        image: python:3.10-slim
+    exec-evaluate-model-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - evaluate_model
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef evaluate_model(\n    train_accuracy: float,\n    val_accuracy:\
+          \ float,\n    val_loss: float,\n    min_accuracy_threshold: float = 0.75\n\
+          ) -> str:\n    \"\"\"Evaluate if model meets quality threshold\"\"\"\n \
+          \   import logging\n    import sys\n\n    logging.basicConfig(stream=sys.stdout,\
+          \ level=logging.INFO)\n\n    logging.info(f\"Model Evaluation:\")\n    logging.info(f\"\
+          \  Training Accuracy: {train_accuracy:.4f}\")\n    logging.info(f\"  Validation\
+          \ Accuracy: {val_accuracy:.4f}\")\n    logging.info(f\"  Validation Loss:\
+          \ {val_loss:.4f}\")\n    logging.info(f\"  Minimum Threshold: {min_accuracy_threshold:.4f}\"\
+          )\n\n    if val_accuracy >= min_accuracy_threshold:\n        logging.info(\"\
+          \u2713 Model PASSED quality check!\")\n        return \"PASS\"\n    else:\n\
+          \        logging.warning(\"\u2717 Model FAILED quality check!\")\n     \
+          \   return \"FAIL\"\n\n"
+        image: python:3.10-slim
+    exec-train-cat-classifier-efficientnet:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - train_cat_classifier_efficientnet
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'tensorflow==2.15.0'\
+          \ 'numpy==1.24.3'  &&  python3 -m pip install --quiet --no-warn-script-location\
+          \ 'kfp==2.14.6' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"\
+          3.9\"' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef train_cat_classifier_efficientnet(\n    dataset_input: Input[Dataset],\n\
+          \    model_output: Output[Model],\n    metrics_output: Output[Metrics]\n\
+          ) -> NamedTuple('TrainingOutputs', train_accuracy=float, val_accuracy=float,\
+          \ val_loss=float):\n    \"\"\"Train EfficientNetB0 transfer learning model\
+          \ for cat classification\"\"\"\n    import os\n    import tensorflow as\
+          \ tf\n    import numpy as np\n    import logging\n    import sys\n\n   \
+          \ logging.basicConfig(stream=sys.stdout, level=logging.INFO)\n\n    # Configuration\n\
+          \    IMG_SIZE = 224\n    BATCH_SIZE = 32\n    EPOCHS = 3\n    SEED = 42\n\
+          \    AUTOTUNE = tf.data.AUTOTUNE\n\n    # Set random seeds\n    tf.random.set_seed(SEED)\n\
+          \    np.random.seed(SEED)\n\n    extract_dir = os.path.join(dataset_input.path,\
+          \ \"cats_and_dogs_filtered\")\n\n    train_dir = os.path.join(extract_dir,\
+          \ \"train\")\n    val_dir = os.path.join(extract_dir, \"validation\")\n\n\
+          \    logging.info(f\"Loading datasets from {extract_dir}...\")\n\n    train_ds_raw\
+          \ = tf.keras.utils.image_dataset_from_directory(\n        train_dir,\n \
+          \       image_size=(IMG_SIZE, IMG_SIZE),\n        batch_size=BATCH_SIZE,\n\
+          \        label_mode='binary',\n        seed=SEED\n    )\n\n    val_ds_raw\
+          \ = tf.keras.utils.image_dataset_from_directory(\n        val_dir,\n   \
+          \     image_size=(IMG_SIZE, IMG_SIZE),\n        batch_size=BATCH_SIZE,\n\
+          \        label_mode='binary',\n        seed=SEED\n    )\n\n    train_ds\
+          \ = train_ds_raw.map(lambda x, y: (tf.cast(x, tf.float32) / 255.0, y)).prefetch(AUTOTUNE)\n\
+          \    val_ds = val_ds_raw.map(lambda x, y: (tf.cast(x, tf.float32) / 255.0,\
+          \ y)).prefetch(AUTOTUNE)\n\n    logging.info(\"Building EfficientNetB0 transfer\
+          \ learning model...\")\n\n    base_model = tf.keras.applications.EfficientNetB0(\n\
+          \        input_shape=(IMG_SIZE, IMG_SIZE, 3),\n        include_top=False,\n\
+          \        weights=\"imagenet\"\n    )\n    base_model.trainable = False\n\
+          \n    inputs = tf.keras.Input(shape=(IMG_SIZE, IMG_SIZE, 3))\n    x = tf.keras.applications.efficientnet.preprocess_input(inputs\
+          \ * 255.0)\n    x = base_model(x, training=False)\n    x = tf.keras.layers.GlobalAveragePooling2D()(x)\n\
+          \    x = tf.keras.layers.Dropout(0.3)(x)\n    outputs = tf.keras.layers.Dense(1,\
+          \ activation='sigmoid')(x)\n\n    model = tf.keras.Model(inputs, outputs)\n\
+          \n    model.compile(\n        optimizer='adam',\n        loss='binary_crossentropy',\n\
+          \        metrics=['accuracy', tf.keras.metrics.AUC(name='auc')]\n    )\n\
+          \n    logging.info(\"Training EfficientNetB0 base model...\")\n    history\
+          \ = model.fit(train_ds, epochs=EPOCHS, validation_data=val_ds, verbose=1)\n\
+          \n    logging.info(\"Fine-tuning last 40 layers of EfficientNetB0...\")\n\
+          \    base_model.trainable = True\n    for layer in base_model.layers[:-40]:\n\
+          \        layer.trainable = False\n\n    model.compile(\n        optimizer=tf.keras.optimizers.Adam(1e-4),\n\
+          \        loss='binary_crossentropy',\n        metrics=['accuracy', tf.keras.metrics.AUC(name='auc')]\n\
+          \    )\n\n    history_fine = model.fit(train_ds, epochs=1, validation_data=val_ds,\
+          \ verbose=1)\n\n    final_train_acc = float(history_fine.history['accuracy'][-1])\n\
+          \    final_val_acc = float(history_fine.history['val_accuracy'][-1])\n \
+          \   final_val_loss = float(history_fine.history['val_loss'][-1])\n\n   \
+          \ logging.info(f\"EfficientNetB0 Training Accuracy: {final_train_acc:.4f}\"\
+          )\n    logging.info(f\"EfficientNetB0 Validation Accuracy: {final_val_acc:.4f}\"\
+          )\n    logging.info(f\"EfficientNetB0 Validation Loss: {final_val_loss:.4f}\"\
+          )\n\n    os.makedirs(model_output.path, exist_ok=True)\n\n    model_output.metadata[\"\
+          framework\"] = \"tensorflow\"\n    model_output.metadata[\"model_type\"\
+          ] = \"EfficientNetB0\"\n    model_output.metadata[\"file_name\"] = \"model.keras\"\
+          \n\n    model_file = os.path.join(model_output.path, \"model.keras\")\n\
+          \    model.save(model_file)\n    logging.info(f\"EfficientNetB0 model saved\
+          \ to {model_file}\")\n\n    metrics_output.log_metric(\"train_accuracy\"\
+          , final_train_acc)\n    metrics_output.log_metric(\"val_accuracy\", final_val_acc)\n\
+          \    metrics_output.log_metric(\"val_loss\", final_val_loss)\n\n    outputs\
+          \ = NamedTuple(\n        'TrainingOutputs',\n        train_accuracy=float,\n\
+          \        val_accuracy=float,\n        val_loss=float\n    )\n\n    return\
+          \ outputs(final_train_acc, final_val_acc, final_val_loss)\n\n"
+        image: python:3.10-slim
+    exec-train-cat-classifier-mobilenet:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - train_cat_classifier_mobilenet
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'tensorflow==2.15.0'\
+          \ 'numpy==1.24.3'  &&  python3 -m pip install --quiet --no-warn-script-location\
+          \ 'kfp==2.14.6' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"\
+          3.9\"' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef train_cat_classifier_mobilenet(\n    dataset_input: Input[Dataset],\n\
+          \    model_output: Output[Model],\n    metrics_output: Output[Metrics]\n\
+          ) -> NamedTuple('TrainingOutputs', train_accuracy=float, val_accuracy=float,\
+          \ val_loss=float):\n    \"\"\"Train MobileNetV2 transfer learning model\
+          \ for cat classification\"\"\"\n    import os\n    import tensorflow as\
+          \ tf\n    import numpy as np\n    import logging\n    import sys\n\n   \
+          \ logging.basicConfig(stream=sys.stdout, level=logging.INFO)\n\n    # Configuration\n\
+          \    IMG_SIZE = 224\n    BATCH_SIZE = 32\n    EPOCHS = 3\n    SEED = 42\n\
+          \    AUTOTUNE = tf.data.AUTOTUNE\n\n    # Set random seeds\n    tf.random.set_seed(SEED)\n\
+          \    np.random.seed(SEED)\n\n    # Read dataset from KFP artifact path\n\
+          \    # The dataset is extracted to dataset_input.path/cats_and_dogs_filtered\n\
+          \    extract_dir = os.path.join(dataset_input.path, \"cats_and_dogs_filtered\"\
+          )\n\n    train_dir = os.path.join(extract_dir, \"train\")\n    val_dir =\
+          \ os.path.join(extract_dir, \"validation\")\n\n    logging.info(f\"Loading\
+          \ datasets from {extract_dir}...\")\n\n    # Load datasets\n    train_ds_raw\
+          \ = tf.keras.utils.image_dataset_from_directory(\n        train_dir,\n \
+          \       image_size=(IMG_SIZE, IMG_SIZE),\n        batch_size=BATCH_SIZE,\n\
+          \        label_mode='binary',\n        seed=SEED\n    )\n\n    val_ds_raw\
+          \ = tf.keras.utils.image_dataset_from_directory(\n        val_dir,\n   \
+          \     image_size=(IMG_SIZE, IMG_SIZE),\n        batch_size=BATCH_SIZE,\n\
+          \        label_mode='binary',\n        seed=SEED\n    )\n\n    # Normalize\
+          \ datasets\n    train_ds = train_ds_raw.map(lambda x, y: (tf.cast(x, tf.float32)\
+          \ / 255.0, y)).prefetch(AUTOTUNE)\n    val_ds = val_ds_raw.map(lambda x,\
+          \ y: (tf.cast(x, tf.float32) / 255.0, y)).prefetch(AUTOTUNE)\n\n    logging.info(\"\
+          Building MobileNetV2 transfer learning model...\")\n\n    # Build model\n\
+          \    base_model = tf.keras.applications.MobileNetV2(\n        input_shape=(IMG_SIZE,\
+          \ IMG_SIZE, 3),\n        include_top=False,\n        weights=\"imagenet\"\
+          \n    )\n    base_model.trainable = False\n\n    inputs = tf.keras.Input(shape=(IMG_SIZE,\
+          \ IMG_SIZE, 3))\n    x = tf.keras.applications.mobilenet_v2.preprocess_input(inputs\
+          \ * 255.0)\n    x = base_model(x, training=False)\n    x = tf.keras.layers.GlobalAveragePooling2D()(x)\n\
+          \    x = tf.keras.layers.Dropout(0.2)(x)\n    outputs = tf.keras.layers.Dense(1,\
+          \ activation='sigmoid')(x)\n\n    model = tf.keras.Model(inputs, outputs)\n\
+          \n    model.compile(\n        optimizer='adam',\n        loss='binary_crossentropy',\n\
+          \        metrics=['accuracy', tf.keras.metrics.AUC(name='auc')]\n    )\n\
+          \n    logging.info(\"Training base model...\")\n    history = model.fit(train_ds,\
+          \ epochs=EPOCHS, validation_data=val_ds, verbose=1)\n\n    # Fine-tuning\n\
+          \    logging.info(\"Fine-tuning last 30 layers...\")\n    base_model.trainable\
+          \ = True\n    for layer in base_model.layers[:-30]:\n        layer.trainable\
+          \ = False\n\n    model.compile(\n        optimizer=tf.keras.optimizers.Adam(1e-4),\n\
+          \        loss='binary_crossentropy',\n        metrics=['accuracy', tf.keras.metrics.AUC(name='auc')]\n\
+          \    )\n\n    history_fine = model.fit(train_ds, epochs=1, validation_data=val_ds,\
+          \ verbose=1)\n\n    # Get final metrics\n    final_train_acc = float(history_fine.history['accuracy'][-1])\n\
+          \    final_val_acc = float(history_fine.history['val_accuracy'][-1])\n \
+          \   final_val_loss = float(history_fine.history['val_loss'][-1])\n\n   \
+          \ logging.info(f\"Training Accuracy: {final_train_acc:.4f}\")\n    logging.info(f\"\
+          Validation Accuracy: {final_val_acc:.4f}\")\n    logging.info(f\"Validation\
+          \ Loss: {final_val_loss:.4f}\")\n\n    # Save model to KFP artifact path\n\
+          \    import os\n    os.makedirs(model_output.path, exist_ok=True)\n\n  \
+          \  model_output.metadata[\"framework\"] = \"tensorflow\"\n    model_output.metadata[\"\
+          model_type\"] = \"MobileNetV2\"\n    model_output.metadata[\"file_name\"\
+          ] = \"model.keras\"\n\n    model_file = os.path.join(model_output.path,\
+          \ \"model.keras\")\n    model.save(model_file)\n    logging.info(f\"Model\
+          \ saved to {model_file}\")\n\n    # Log metrics\n    metrics_output.log_metric(\"\
+          train_accuracy\", final_train_acc)\n    metrics_output.log_metric(\"val_accuracy\"\
+          , final_val_acc)\n    metrics_output.log_metric(\"val_loss\", final_val_loss)\n\
+          \n    outputs = NamedTuple(\n        'TrainingOutputs',\n        train_accuracy=float,\n\
+          \        val_accuracy=float,\n        val_loss=float\n    )\n\n    return\
+          \ outputs(final_train_acc, final_val_acc, final_val_loss)\n\n"
+        image: python:3.10-slim
+    exec-upload-model-to-gcs:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - upload_model_to_gcs
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'google-cloud-storage'\
+          \  &&  python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef upload_model_to_gcs(\n    project_id: str,\n    model_bucket:\
+          \ str,\n    model: Input[Model],\n    version: str = \"v2\"  # Force component\
+          \ refresh\n):\n    \"\"\"Upload trained model to Google Cloud Storage -\
+          \ Version 2 with detailed logging\"\"\"\n    from google.cloud import storage\n\
+          \    from google.cloud.exceptions import GoogleCloudError\n    import logging\n\
+          \    import sys\n    import os\n\n    logging.basicConfig(stream=sys.stdout,\
+          \ level=logging.INFO)\n\n    try:\n        # Debug: Print all inputs\n \
+          \       logging.info(f\"=== Upload Model to GCS - Starting ===\")\n    \
+          \    logging.info(f\"Project ID: {project_id}\")\n        logging.info(f\"\
+          Model bucket: {model_bucket}\")\n        logging.info(f\"Model artifact\
+          \ path: {model.path}\")\n        logging.info(f\"Model metadata: {model.metadata}\"\
+          )\n\n        # List contents of model artifact path\n        logging.info(f\"\
+          Listing contents of {model.path}:\")\n        if os.path.exists(model.path):\n\
+          \            for item in os.listdir(model.path):\n                item_path\
+          \ = os.path.join(model.path, item)\n                size = os.path.getsize(item_path)\
+          \ if os.path.isfile(item_path) else 0\n                logging.info(f\"\
+          \  - {item} ({'file' if os.path.isfile(item_path) else 'dir'}, {size} bytes)\"\
+          )\n        else:\n            logging.error(f\"Model path does not exist:\
+          \ {model.path}\")\n            raise FileNotFoundError(f\"Model artifact\
+          \ path not found: {model.path}\")\n\n        # Construct source file path\
+          \ from KFP artifact\n        source_file = os.path.join(model.path, model.metadata.get('file_name',\
+          \ 'model.keras'))\n        logging.info(f\"Source file path: {source_file}\"\
+          )\n\n        # Verify file exists\n        if not os.path.exists(source_file):\n\
+          \            logging.error(f\"Model file not found at {source_file}\")\n\
+          \            raise FileNotFoundError(f\"Model file not found at {source_file}\"\
+          )\n\n        file_size = os.path.getsize(source_file)\n        logging.info(f\"\
+          Model file size: {file_size / (1024*1024):.2f} MB\")\n\n        # Initialize\
+          \ GCS client\n        logging.info(\"Initializing GCS client...\")\n   \
+          \     client = storage.Client(project=project_id)\n\n        # Check if\
+          \ bucket exists\n        logging.info(f\"Checking if bucket exists: {model_bucket}\"\
+          )\n        bucket = client.bucket(model_bucket)\n        if not bucket.exists():\n\
+          \            logging.error(f\"Bucket does not exist: {model_bucket}\")\n\
+          \            raise ValueError(f\"Bucket does not exist: {model_bucket}\"\
+          )\n\n        logging.info(f\"Bucket {model_bucket} exists and is accessible\"\
+          )\n\n        # Upload to GCS\n        model_filename = \"cat_classifier_model.keras\"\
+          \n        blob = bucket.blob(model_filename)\n\n        logging.info(f\"\
+          Starting upload to gs://{model_bucket}/{model_filename}...\")\n        blob.upload_from_filename(source_file)\n\
+          \n        logging.info(f\"\u2713 Model uploaded successfully to gs://{model_bucket}/{model_filename}\"\
+          )\n        logging.info(f\"\u2713 File size: {file_size / (1024*1024):.2f}\
+          \ MB\")\n\n    except FileNotFoundError as e:\n        logging.error(f\"\
+          File not found error: {e}\")\n        raise\n    except GoogleCloudError\
+          \ as e:\n        logging.error(f\"Google Cloud error: {e}\")\n        logging.error(f\"\
+          Error details: {type(e).__name__}\")\n        raise\n    except Exception\
+          \ as e:\n        logging.error(f\"Unexpected error during upload: {e}\"\
+          )\n        logging.error(f\"Error type: {type(e).__name__}\")\n        import\
+          \ traceback\n        logging.error(f\"Traceback: {traceback.format_exc()}\"\
+          )\n        raise\n\n"
+        image: python:3.10-slim
+    exec-upload-model-to-gcs-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - upload_model_to_gcs
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'google-cloud-storage'\
+          \  &&  python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef upload_model_to_gcs(\n    project_id: str,\n    model_bucket:\
+          \ str,\n    model: Input[Model],\n    version: str = \"v2\"  # Force component\
+          \ refresh\n):\n    \"\"\"Upload trained model to Google Cloud Storage -\
+          \ Version 2 with detailed logging\"\"\"\n    from google.cloud import storage\n\
+          \    from google.cloud.exceptions import GoogleCloudError\n    import logging\n\
+          \    import sys\n    import os\n\n    logging.basicConfig(stream=sys.stdout,\
+          \ level=logging.INFO)\n\n    try:\n        # Debug: Print all inputs\n \
+          \       logging.info(f\"=== Upload Model to GCS - Starting ===\")\n    \
+          \    logging.info(f\"Project ID: {project_id}\")\n        logging.info(f\"\
+          Model bucket: {model_bucket}\")\n        logging.info(f\"Model artifact\
+          \ path: {model.path}\")\n        logging.info(f\"Model metadata: {model.metadata}\"\
+          )\n\n        # List contents of model artifact path\n        logging.info(f\"\
+          Listing contents of {model.path}:\")\n        if os.path.exists(model.path):\n\
+          \            for item in os.listdir(model.path):\n                item_path\
+          \ = os.path.join(model.path, item)\n                size = os.path.getsize(item_path)\
+          \ if os.path.isfile(item_path) else 0\n                logging.info(f\"\
+          \  - {item} ({'file' if os.path.isfile(item_path) else 'dir'}, {size} bytes)\"\
+          )\n        else:\n            logging.error(f\"Model path does not exist:\
+          \ {model.path}\")\n            raise FileNotFoundError(f\"Model artifact\
+          \ path not found: {model.path}\")\n\n        # Construct source file path\
+          \ from KFP artifact\n        source_file = os.path.join(model.path, model.metadata.get('file_name',\
+          \ 'model.keras'))\n        logging.info(f\"Source file path: {source_file}\"\
+          )\n\n        # Verify file exists\n        if not os.path.exists(source_file):\n\
+          \            logging.error(f\"Model file not found at {source_file}\")\n\
+          \            raise FileNotFoundError(f\"Model file not found at {source_file}\"\
+          )\n\n        file_size = os.path.getsize(source_file)\n        logging.info(f\"\
+          Model file size: {file_size / (1024*1024):.2f} MB\")\n\n        # Initialize\
+          \ GCS client\n        logging.info(\"Initializing GCS client...\")\n   \
+          \     client = storage.Client(project=project_id)\n\n        # Check if\
+          \ bucket exists\n        logging.info(f\"Checking if bucket exists: {model_bucket}\"\
+          )\n        bucket = client.bucket(model_bucket)\n        if not bucket.exists():\n\
+          \            logging.error(f\"Bucket does not exist: {model_bucket}\")\n\
+          \            raise ValueError(f\"Bucket does not exist: {model_bucket}\"\
+          )\n\n        logging.info(f\"Bucket {model_bucket} exists and is accessible\"\
+          )\n\n        # Upload to GCS\n        model_filename = \"cat_classifier_model.keras\"\
+          \n        blob = bucket.blob(model_filename)\n\n        logging.info(f\"\
+          Starting upload to gs://{model_bucket}/{model_filename}...\")\n        blob.upload_from_filename(source_file)\n\
+          \n        logging.info(f\"\u2713 Model uploaded successfully to gs://{model_bucket}/{model_filename}\"\
+          )\n        logging.info(f\"\u2713 File size: {file_size / (1024*1024):.2f}\
+          \ MB\")\n\n    except FileNotFoundError as e:\n        logging.error(f\"\
+          File not found error: {e}\")\n        raise\n    except GoogleCloudError\
+          \ as e:\n        logging.error(f\"Google Cloud error: {e}\")\n        logging.error(f\"\
+          Error details: {type(e).__name__}\")\n        raise\n    except Exception\
+          \ as e:\n        logging.error(f\"Unexpected error during upload: {e}\"\
+          )\n        logging.error(f\"Error type: {type(e).__name__}\")\n        import\
+          \ traceback\n        logging.error(f\"Traceback: {traceback.format_exc()}\"\
+          )\n        raise\n\n"
+        image: python:3.10-slim
+pipelineInfo:
+  description: Train and deploy a cat classifier with MobileNetV2 and EfficientNetB0
+    (data from public URL)
+  name: cat-classifier-training-pipeline-url
+root:
+  dag:
+    tasks:
+      compare-models:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-compare-models
+        dependentTasks:
+        - train-cat-classifier-efficientnet
+        - train-cat-classifier-mobilenet
+        inputs:
+          parameters:
+            first_model_name:
+              runtimeValue:
+                constant: mobilenet_v2
+            first_model_val_accuracy:
+              taskOutputParameter:
+                outputParameterKey: val_accuracy
+                producerTask: train-cat-classifier-mobilenet
+            second_model_name:
+              runtimeValue:
+                constant: efficientnet_b0
+            second_model_val_accuracy:
+              taskOutputParameter:
+                outputParameterKey: val_accuracy
+                producerTask: train-cat-classifier-efficientnet
+        taskInfo:
+          name: compare-models
+      condition-1:
+        componentRef:
+          name: comp-condition-1
+        dependentTasks:
+        - compare-models
+        - evaluate-model
+        - train-cat-classifier-mobilenet
+        inputs:
+          artifacts:
+            pipelinechannel--train-cat-classifier-mobilenet-model_output:
+              taskOutputArtifact:
+                outputArtifactKey: model_output
+                producerTask: train-cat-classifier-mobilenet
+          parameters:
+            pipelinechannel--compare-models-best_model:
+              taskOutputParameter:
+                outputParameterKey: best_model
+                producerTask: compare-models
+            pipelinechannel--evaluate-model-Output:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: evaluate-model
+            pipelinechannel--model_bucket:
+              componentInputParameter: model_bucket
+            pipelinechannel--project_id:
+              componentInputParameter: project_id
+        taskInfo:
+          name: condition-1
+        triggerPolicy:
+          condition: inputs.parameter_values['pipelinechannel--evaluate-model-Output']
+            == 'PASS'
+      condition-3:
+        componentRef:
+          name: comp-condition-3
+        dependentTasks:
+        - compare-models
+        - evaluate-model-2
+        - train-cat-classifier-efficientnet
+        inputs:
+          artifacts:
+            pipelinechannel--train-cat-classifier-efficientnet-model_output:
+              taskOutputArtifact:
+                outputArtifactKey: model_output
+                producerTask: train-cat-classifier-efficientnet
+          parameters:
+            pipelinechannel--compare-models-best_model:
+              taskOutputParameter:
+                outputParameterKey: best_model
+                producerTask: compare-models
+            pipelinechannel--evaluate-model-2-Output:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: evaluate-model-2
+            pipelinechannel--model_bucket:
+              componentInputParameter: model_bucket
+            pipelinechannel--project_id:
+              componentInputParameter: project_id
+        taskInfo:
+          name: condition-3
+        triggerPolicy:
+          condition: inputs.parameter_values['pipelinechannel--evaluate-model-2-Output']
+            == 'PASS'
+      download-cat-dog-data-from-url:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-download-cat-dog-data-from-url
+        taskInfo:
+          name: download-cat-dog-data-from-url
+      evaluate-model:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-evaluate-model
+        dependentTasks:
+        - train-cat-classifier-mobilenet
+        inputs:
+          parameters:
+            min_accuracy_threshold:
+              componentInputParameter: min_accuracy_threshold
+            train_accuracy:
+              taskOutputParameter:
+                outputParameterKey: train_accuracy
+                producerTask: train-cat-classifier-mobilenet
+            val_accuracy:
+              taskOutputParameter:
+                outputParameterKey: val_accuracy
+                producerTask: train-cat-classifier-mobilenet
+            val_loss:
+              taskOutputParameter:
+                outputParameterKey: val_loss
+                producerTask: train-cat-classifier-mobilenet
+        taskInfo:
+          name: evaluate-model
+      evaluate-model-2:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-evaluate-model-2
+        dependentTasks:
+        - train-cat-classifier-efficientnet
+        inputs:
+          parameters:
+            min_accuracy_threshold:
+              componentInputParameter: min_accuracy_threshold
+            train_accuracy:
+              taskOutputParameter:
+                outputParameterKey: train_accuracy
+                producerTask: train-cat-classifier-efficientnet
+            val_accuracy:
+              taskOutputParameter:
+                outputParameterKey: val_accuracy
+                producerTask: train-cat-classifier-efficientnet
+            val_loss:
+              taskOutputParameter:
+                outputParameterKey: val_loss
+                producerTask: train-cat-classifier-efficientnet
+        taskInfo:
+          name: evaluate-model-2
+      train-cat-classifier-efficientnet:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-train-cat-classifier-efficientnet
+        dependentTasks:
+        - download-cat-dog-data-from-url
+        inputs:
+          artifacts:
+            dataset_input:
+              taskOutputArtifact:
+                outputArtifactKey: dataset_output
+                producerTask: download-cat-dog-data-from-url
+        taskInfo:
+          name: train-cat-classifier-efficientnet
+      train-cat-classifier-mobilenet:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-train-cat-classifier-mobilenet
+        dependentTasks:
+        - download-cat-dog-data-from-url
+        inputs:
+          artifacts:
+            dataset_input:
+              taskOutputArtifact:
+                outputArtifactKey: dataset_output
+                producerTask: download-cat-dog-data-from-url
+        taskInfo:
+          name: train-cat-classifier-mobilenet
+  inputDefinitions:
+    parameters:
+      min_accuracy_threshold:
+        defaultValue: 0.75
+        description: 'Minimum validation accuracy required (default: 0.75)'
+        isOptional: true
+        parameterType: NUMBER_DOUBLE
+      model_bucket:
+        description: GCS bucket name for storing trained models
+        parameterType: STRING
+      project_id:
+        description: Google Cloud project ID
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.14.6

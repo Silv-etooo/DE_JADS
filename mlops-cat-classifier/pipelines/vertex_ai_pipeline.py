@@ -113,13 +113,13 @@ def download_cat_dog_data_from_url(
 
 
 # ============================================================================
-# Pipeline Component 2: Model Training
+# Pipeline Component 2a: Model Training
 # ============================================================================
 @dsl.component(
     packages_to_install=["tensorflow==2.15.0", "numpy==1.24.3"],
     base_image="python:3.10-slim"
 )
-def train_cat_classifier(
+def train_cat_classifier_mobilenet(
     dataset_input: Input[Dataset],
     model_output: Output[Model],
     metrics_output: Output[Metrics]
@@ -251,6 +251,136 @@ def train_cat_classifier(
 
     return outputs(final_train_acc, final_val_acc, final_val_loss)
 
+# ============================================================================
+# Pipeline Component 2b Model Training - EfficientNetB0
+# ============================================================================
+@dsl.component(
+    packages_to_install=["tensorflow==2.15.0", "numpy==1.24.3"],
+    base_image="python:3.10-slim"
+)
+def train_cat_classifier_efficientnet(
+    dataset_input: Input[Dataset],
+    model_output: Output[Model],
+    metrics_output: Output[Metrics]
+) -> NamedTuple('TrainingOutputs', train_accuracy=float, val_accuracy=float, val_loss=float):
+    """Train EfficientNetB0 transfer learning model for cat classification"""
+    import os
+    import tensorflow as tf
+    import numpy as np
+    import logging
+    import sys
+
+    logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+
+    # Configuration
+    IMG_SIZE = 224
+    BATCH_SIZE = 32
+    EPOCHS = 3
+    SEED = 42
+    AUTOTUNE = tf.data.AUTOTUNE
+
+    # Set random seeds
+    tf.random.set_seed(SEED)
+    np.random.seed(SEED)
+
+    extract_dir = os.path.join(dataset_input.path, "cats_and_dogs_filtered")
+
+    train_dir = os.path.join(extract_dir, "train")
+    val_dir = os.path.join(extract_dir, "validation")
+
+    logging.info(f"Loading datasets from {extract_dir}...")
+
+    train_ds_raw = tf.keras.utils.image_dataset_from_directory(
+        train_dir,
+        image_size=(IMG_SIZE, IMG_SIZE),
+        batch_size=BATCH_SIZE,
+        label_mode='binary',
+        seed=SEED
+    )
+
+    val_ds_raw = tf.keras.utils.image_dataset_from_directory(
+        val_dir,
+        image_size=(IMG_SIZE, IMG_SIZE),
+        batch_size=BATCH_SIZE,
+        label_mode='binary',
+        seed=SEED
+    )
+
+    train_ds = train_ds_raw.map(lambda x, y: (tf.cast(x, tf.float32) / 255.0, y)).prefetch(AUTOTUNE)
+    val_ds = val_ds_raw.map(lambda x, y: (tf.cast(x, tf.float32) / 255.0, y)).prefetch(AUTOTUNE)
+
+    logging.info("Building EfficientNetB0 transfer learning model...")
+
+    base_model = tf.keras.applications.EfficientNetB0(
+        input_shape=(IMG_SIZE, IMG_SIZE, 3),
+        include_top=False,
+        weights="imagenet"
+    )
+    base_model.trainable = False
+
+    inputs = tf.keras.Input(shape=(IMG_SIZE, IMG_SIZE, 3))
+    x = tf.keras.applications.efficientnet.preprocess_input(inputs * 255.0)
+    x = base_model(x, training=False)
+    x = tf.keras.layers.GlobalAveragePooling2D()(x)
+    x = tf.keras.layers.Dropout(0.3)(x)
+    outputs = tf.keras.layers.Dense(1, activation='sigmoid')(x)
+
+    model = tf.keras.Model(inputs, outputs)
+
+    model.compile(
+        optimizer='adam',
+        loss='binary_crossentropy',
+        metrics=['accuracy', tf.keras.metrics.AUC(name='auc')]
+    )
+
+    logging.info("Training EfficientNetB0 base model...")
+    history = model.fit(train_ds, epochs=EPOCHS, validation_data=val_ds, verbose=1)
+
+    logging.info("Fine-tuning last 40 layers of EfficientNetB0...")
+    base_model.trainable = True
+    for layer in base_model.layers[:-40]:
+        layer.trainable = False
+
+    model.compile(
+        optimizer=tf.keras.optimizers.Adam(1e-4),
+        loss='binary_crossentropy',
+        metrics=['accuracy', tf.keras.metrics.AUC(name='auc')]
+    )
+
+    history_fine = model.fit(train_ds, epochs=1, validation_data=val_ds, verbose=1)
+
+    final_train_acc = float(history_fine.history['accuracy'][-1])
+    final_val_acc = float(history_fine.history['val_accuracy'][-1])
+    final_val_loss = float(history_fine.history['val_loss'][-1])
+
+    logging.info(f"EfficientNetB0 Training Accuracy: {final_train_acc:.4f}")
+    logging.info(f"EfficientNetB0 Validation Accuracy: {final_val_acc:.4f}")
+    logging.info(f"EfficientNetB0 Validation Loss: {final_val_loss:.4f}")
+
+    os.makedirs(model_output.path, exist_ok=True)
+
+    model_output.metadata["framework"] = "tensorflow"
+    model_output.metadata["model_type"] = "EfficientNetB0"
+    model_output.metadata["file_name"] = "model.keras"
+
+    model_file = os.path.join(model_output.path, "model.keras")
+    model.save(model_file)
+    logging.info(f"EfficientNetB0 model saved to {model_file}")
+
+    metrics_output.log_metric("train_accuracy", final_train_acc)
+    metrics_output.log_metric("val_accuracy", final_val_acc)
+    metrics_output.log_metric("val_loss", final_val_loss)
+
+    outputs = NamedTuple(
+        'TrainingOutputs',
+        train_accuracy=float,
+        val_accuracy=float,
+        val_loss=float
+    )
+
+    return outputs(final_train_acc, final_val_acc, final_val_loss)
+
+
 
 # ============================================================================
 # Pipeline Component 3: Model Evaluation
@@ -283,9 +413,49 @@ def evaluate_model(
         logging.warning("✗ Model FAILED quality check!")
         return "FAIL"
 
+# ============================================================================
+# Pipeline Component 4: Compare 2 Models
+# ============================================================================
+
+@dsl.component(
+    base_image="python:3.10-slim"
+)
+def compare_models(
+    first_model_name: str,
+    first_model_val_accuracy: float,
+    second_model_name: str,
+    second_model_val_accuracy: float
+) -> NamedTuple('CompareOutputs', best_model=str, best_val_accuracy=float):
+    """Compare two models based on validation accuracy."""
+    import logging
+    import sys
+
+    logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+
+    logging.info("Comparing candidate models...")
+    logging.info(f"  {first_model_name} validation accuracy: {first_model_val_accuracy:.4f}")
+    logging.info(f"  {second_model_name} validation accuracy: {second_model_val_accuracy:.4f}")
+
+    if first_model_val_accuracy >= second_model_val_accuracy:
+        logging.info(f"Selecting {first_model_name} as best model")
+        best_name = first_model_name
+        best_accuracy = first_model_val_accuracy
+    else:
+        logging.info(f"Selecting {second_model_name} as best model")
+        best_name = second_model_name
+        best_accuracy = second_model_val_accuracy
+
+    outputs = NamedTuple(
+        'CompareOutputs',
+        best_model=str,
+        best_val_accuracy=float
+    )
+
+    return outputs(best_name, best_accuracy)
+
 
 # ============================================================================
-# Pipeline Component 4: Upload Model to GCS
+# Pipeline Component 5: Upload Model to GCS
 # ============================================================================
 @dsl.component(
     packages_to_install=["google-cloud-storage"],
@@ -376,7 +546,7 @@ def upload_model_to_gcs(
 
 
 # ============================================================================
-# Pipeline Component 5: Publish Pub/Sub Message
+# Pipeline Component 6: Publish Pub/Sub Message
 # ============================================================================
 @dsl.component(
     packages_to_install=["google-cloud-pubsub"],
@@ -414,7 +584,7 @@ def publish_model_trained_message(
 # ============================================================================
 @kfp.dsl.pipeline(
     name="cat-classifier-training-pipeline-gcs",
-    description="Train and deploy a cat classifier using MobileNetV2 (data from GCS)"
+    description="Train and deploy a cat classifier with MobileNetV2 and EfficientNetB0 (data from GCS)"
 )
 def cat_classifier_pipeline_gcs(
     project_id: str,
@@ -441,34 +611,92 @@ def cat_classifier_pipeline_gcs(
         dataset_zip_filename=dataset_zip_filename
     )
 
-    # Step 2: Train model
-    train_task = train_cat_classifier(
+     # Step 2: Train candidate models
+    mobilenet_task = train_cat_classifier_mobilenet(
         dataset_input=download_task.outputs["dataset_output"]
     )
 
-    # Step 3: Evaluate model
-    eval_task = evaluate_model(
-        train_accuracy=train_task.outputs["train_accuracy"],
-        val_accuracy=train_task.outputs["val_accuracy"],
-        val_loss=train_task.outputs["val_loss"],
+    # # Step 3: Evaluate model
+    # eval_task = evaluate_model(
+    #     train_accuracy=train_task.outputs["train_accuracy"],
+    #     val_accuracy=train_task.outputs["val_accuracy"],
+    #     val_loss=train_task.outputs["val_loss"],
+    #     min_accuracy_threshold=min_accuracy_threshold
+    # )
+
+    efficientnet_task = train_cat_classifier_efficientnet(
+        dataset_input=download_task.outputs["dataset_output"]
+    )
+
+    # Step 3: Evaluate candidates
+    mobilenet_eval_task = evaluate_model(
+        train_accuracy=mobilenet_task.outputs["train_accuracy"],
+        val_accuracy=mobilenet_task.outputs["val_accuracy"],
+        val_loss=mobilenet_task.outputs["val_loss"],
         min_accuracy_threshold=min_accuracy_threshold
     )
 
-    # Step 4: Upload model to GCS (only if evaluation passes)
-    with dsl.If(eval_task.output == "PASS"):
-        upload_task = upload_model_to_gcs(
-            project_id=project_id,
-            model_bucket=model_bucket,
-            model=train_task.outputs["model_output"],
-            version="v2"
-        )
+    # # Step 4: Upload model to GCS (only if evaluation passes)
+    # with dsl.If(eval_task.output == "PASS"):
+    #     upload_task = upload_model_to_gcs(
+    #         project_id=project_id,
+    #         model_bucket=model_bucket,
+    #         model=train_task.outputs["model_output"],
+    #         version="v2"
+    #     )
 
-        # Step 5: Publish Pub/Sub message to trigger deployment
-        publish_message_task = publish_model_trained_message(
-            project_id=project_id,
-            model_bucket=model_bucket,
-            topic_id="model-trained"   # must match your Cloud Build trigger topic
-        ).after(upload_task)
+    efficientnet_eval_task = evaluate_model(
+        train_accuracy=efficientnet_task.outputs["train_accuracy"],
+        val_accuracy=efficientnet_task.outputs["val_accuracy"],
+        val_loss=efficientnet_task.outputs["val_loss"],
+        min_accuracy_threshold=min_accuracy_threshold
+    )
+
+    # Step 4: Compare models to pick best candidate
+    compare_task = compare_models(
+        first_model_name="mobilenet_v2",
+        first_model_val_accuracy=mobilenet_task.outputs["val_accuracy"],
+        second_model_name="efficientnet_b0",
+        second_model_val_accuracy=efficientnet_task.outputs["val_accuracy"]
+    )
+
+    # Step 5: Upload best model to GCS (only if evaluation passes)
+    with dsl.If(mobilenet_eval_task.output == "PASS"):
+        with dsl.If(compare_task.outputs["best_model"] == "mobilenet_v2"):
+            mobilenet_upload_task = upload_model_to_gcs(
+                project_id=project_id,
+                model_bucket=model_bucket,
+                model=mobilenet_task.outputs["model_output"],
+                version="v2"
+            )
+
+            publish_model_trained_message(
+                project_id=project_id,
+                model_bucket=model_bucket,
+                topic_id="model-trained"
+            ).after(mobilenet_upload_task)
+
+    with dsl.If(efficientnet_eval_task.output == "PASS"):
+        with dsl.If(compare_task.outputs["best_model"] == "efficientnet_b0"):
+            efficientnet_upload_task = upload_model_to_gcs(
+                project_id=project_id,
+                model_bucket=model_bucket,
+                model=efficientnet_task.outputs["model_output"],
+                version="v2"
+            )
+
+            publish_model_trained_message(
+                project_id=project_id,
+                model_bucket=model_bucket,
+                topic_id="model-trained"
+            ).after(efficientnet_upload_task)
+
+    # # Step 5: Publish Pub/Sub message to trigger deployment
+    #     publish_message_task = publish_model_trained_message(
+    #         project_id=project_id,
+    #         model_bucket=model_bucket,
+    #         topic_id="model-trained"   # must match your Cloud Build trigger topic
+    #     ).after(upload_task)
 
 
 # ============================================================================
@@ -476,7 +704,7 @@ def cat_classifier_pipeline_gcs(
 # ============================================================================
 @kfp.dsl.pipeline(
     name="cat-classifier-training-pipeline-url",
-    description="Train and deploy a cat classifier using MobileNetV2 (data from public URL)"
+    description="Train and deploy a cat classifier with MobileNetV2 and EfficientNetB0 (data from public URL)"
 )
 def cat_classifier_pipeline_url(
     project_id: str,
@@ -495,28 +723,66 @@ def cat_classifier_pipeline_url(
     # Step 1: Download data from public URL
     download_task = download_cat_dog_data_from_url()
 
-    # Step 2: Train model
-    train_task = train_cat_classifier(
+    # Step 2: Train candidate models
+    mobilenet_task = train_cat_classifier_mobilenet(
+        dataset_input=download_task.outputs["dataset_output"]
+    )
+        
+    efficientnet_task = train_cat_classifier_efficientnet(
         dataset_input=download_task.outputs["dataset_output"]
     )
 
-    # Step 3: Evaluate model
-    eval_task = evaluate_model(
-        train_accuracy=train_task.outputs["train_accuracy"],
-        val_accuracy=train_task.outputs["val_accuracy"],
-        val_loss=train_task.outputs["val_loss"],
+    # Step 3: Evaluate candidates
+    mobilenet_eval_task = evaluate_model(
+        train_accuracy=mobilenet_task.outputs["train_accuracy"],
+        val_accuracy=mobilenet_task.outputs["val_accuracy"],
+        val_loss=mobilenet_task.outputs["val_loss"],
+        min_accuracy_threshold=min_accuracy_threshold
+    )
+    
+
+    # # Step 4: Upload model to GCS (only if evaluation passes)
+    # with dsl.If(eval_task.output == "PASS"):
+    #     upload_task = upload_model_to_gcs(
+    #         project_id=project_id,
+    #         model_bucket=model_bucket,
+    #         model=train_task.outputs["model_output"],
+    #         version="v2"
+    #     )
+
+    efficientnet_eval_task = evaluate_model(
+        train_accuracy=efficientnet_task.outputs["train_accuracy"],
+        val_accuracy=efficientnet_task.outputs["val_accuracy"],
+        val_loss=efficientnet_task.outputs["val_loss"],
         min_accuracy_threshold=min_accuracy_threshold
     )
 
-    # Step 4: Upload model to GCS (only if evaluation passes)
-    with dsl.If(eval_task.output == "PASS"):
-        upload_task = upload_model_to_gcs(
-            project_id=project_id,
-            model_bucket=model_bucket,
-            model=train_task.outputs["model_output"],
-            version="v2"
-        )
+    # Step 4: Compare models to pick best candidate
+    compare_task = compare_models(
+        first_model_name="mobilenet_v2",
+        first_model_val_accuracy=mobilenet_task.outputs["val_accuracy"],
+        second_model_name="efficientnet_b0",
+        second_model_val_accuracy=efficientnet_task.outputs["val_accuracy"]
+    )
 
+    # Step 5: Upload best model to GCS (only if evaluation passes)
+    with dsl.If(mobilenet_eval_task.output == "PASS"):
+        with dsl.If(compare_task.outputs["best_model"] == "mobilenet_v2"):
+            upload_model_to_gcs(
+                project_id=project_id,
+                model_bucket=model_bucket,
+                model=mobilenet_task.outputs["model_output"],
+                version="v2"
+            )
+
+    with dsl.If(efficientnet_eval_task.output == "PASS"):
+        with dsl.If(compare_task.outputs["best_model"] == "efficientnet_b0"):
+            upload_model_to_gcs(
+                project_id=project_id,
+                model_bucket=model_bucket,
+                model=efficientnet_task.outputs["model_output"],
+                version="v2"
+            )
 
 # ============================================================================
 # Compile the Pipeline
@@ -533,10 +799,10 @@ if __name__ == "__main__":
             pipeline_func=cat_classifier_pipeline_gcs,
             package_path="mlops-cat-classifier/pipelines/cat_classifier_training_pipeline.yaml",
         )
-        print("✓ GCS-based pipeline compiled to: mlops-cat-classifier/pipelines/cat_classifier_training_pipeline.yaml")
+        print("GCS-based pipeline compiled to: mlops-cat-classifier/pipelines/cat_classifier_training_pipeline.yaml")
     else:
         compiler.Compiler().compile(
             pipeline_func=cat_classifier_pipeline_url,
             package_path="mlops-cat-classifier/pipelines/cat_classifier_training_pipeline.yaml",
         )
-        print("✓ URL-based pipeline compiled to: mlops-cat-classifier/pipelines/cat_classifier_training_pipeline.yaml")
+        print("URL-based pipeline compiled to: mlops-cat-classifier/pipelines/cat_classifier_training_pipeline.yaml")
