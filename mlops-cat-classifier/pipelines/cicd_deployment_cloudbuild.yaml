@@ -96,13 +96,13 @@ steps:
     args:
       - -c
       - |
-        API_URL=$(gcloud run services describe cat-predict-api --region=${_REGION} --format='value(status.url)')
+        API_URL=$(gcloud run services describe cat-predict-api --region=${_REGION:-us-central1} --format='value(status.url)')
         gcloud run deploy cat-predict-ui \
           --image us-central1-docker.pkg.dev/$PROJECT_ID/mlops/cat-predict-ui:latest \
-          --region ${_REGION} \
+          --region ${_REGION:-us-central1} \
           --platform managed \
           --port 5000 \
-          --set-env-vars PREDICT_API_URL=$$API_URL \
+          --set-env-vars PREDICT_API_URL=$$API_URL/predict \
           --allow-unauthenticated
 
   # 6) (or last) Print final URLs so you can click them from the build log
