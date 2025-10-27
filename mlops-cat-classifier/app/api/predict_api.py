@@ -5,19 +5,33 @@ import numpy as np
 from PIL import Image
 import io
 import os
+import sys
+import logging
+
+# Configure logging for Cloud Run
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    stream=sys.stdout
+)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
 # ---- Load own model ----
 MODEL_PATH = os.path.join("model", "model.keras")
 
-print(f" Loading model from {MODEL_PATH} ...")
+logger.info(f"Loading model from {MODEL_PATH} ...")
+logger.info(f"Current working directory: {os.getcwd()}")
+logger.info(f"Model directory exists: {os.path.exists('model')}")
+if os.path.exists('model'):
+    logger.info(f"Files in model directory: {os.listdir('model')}")
 
 try:
     model = load_model(MODEL_PATH)
-    print(" Model loaded successfully!")
+    logger.info("Model loaded successfully!")
 except Exception as e:
-    print(f" Error loading model: {e}")
+    logger.error(f"Error loading model: {e}", exc_info=True)
     raise e
 
 def prepare_image(img):
