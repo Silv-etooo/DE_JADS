@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 from tensorflow.keras.preprocessing import image
-from keras.models import load_model
+from tensorflow.keras.models import load_model
 import numpy as np
 from PIL import Image
 import io
@@ -9,7 +9,7 @@ import os
 app = Flask(__name__)
 
 # ---- Load own model ----
-MODEL_PATH = os.path.join("model", "cats_vs_dogs_model.keras")
+MODEL_PATH = os.path.join("model", "model.keras")
 
 print(f" Loading model from {MODEL_PATH} ...")
 
