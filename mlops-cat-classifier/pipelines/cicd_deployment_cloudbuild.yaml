@@ -20,11 +20,12 @@ steps:
   - name: "gcr.io/cloud-builders/docker"
     id: "build-api"
     waitFor: ["fetch-model"]
-    args: 
-      - build 
+    args:
+      - build
+      - --no-cache
       - -f
       - "/workspace/mlops-cat-classifier/app/api/Dockerfile.api"
-      - -t 
+      - -t
       - us-central1-docker.pkg.dev/$PROJECT_ID/mlops/cat-predict-api:latest
       - "mlops-cat-classifier/app/api"
 
