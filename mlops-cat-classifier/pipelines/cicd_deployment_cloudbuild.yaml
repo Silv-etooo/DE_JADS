@@ -115,7 +115,7 @@ steps:
         API_URL=$(gcloud run services describe cat-predict-api --region ${_REGION:-us-central1} --format='value(status.url)')
         UI_URL=$(gcloud run services describe cat-predict-ui  --region ${_REGION:-us-central1} --format='value(status.url)')
         echo "=========================================="
-        echo "✅ Deployed services:"
+        echo "Deployed services:"
         echo "API URL: $$API_URL"
         echo "UI  URL: $$UI_URL"
         echo "=========================================="

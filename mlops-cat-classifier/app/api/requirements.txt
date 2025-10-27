@@ -3,3 +3,4 @@ tensorflow==2.16.1
 gunicorn
 numpy==1.26.4
 Pillow==10.3.0
+keras==3.3.3
