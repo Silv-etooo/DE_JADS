@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile.api
     container_name: cat-api
     ports:
-      - "8000:8000"            
+      - "8080:8080"            
     restart: always
 
   ui:
@@ -19,7 +19,7 @@ services:
       - "5000:5000"             
     environment:
       # The UI needs to know where to send prediction requests
-      - PREDICT_API_URL=http://api:8000/predict
+      - PREDICT_API_URL=http://api:8080/predict
     depends_on:
       - api
     restart: always

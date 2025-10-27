@@ -9,7 +9,8 @@ import os
 app = Flask(__name__)
 
 # ---- Load own model ----
-MODEL_PATH = os.path.join(os.path.dirname(__file__), "model", "model.keras")
+MODEL_PATH = os.path.join("model", "cats_vs_dogs_model.keras")
+
 print(f" Loading model from {MODEL_PATH} ...")
 
 try:
