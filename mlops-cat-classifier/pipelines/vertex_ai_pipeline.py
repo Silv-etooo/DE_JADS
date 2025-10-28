@@ -20,7 +20,7 @@ from typing import NamedTuple
 # Pipeline Component 1: Data Ingestion from GCS
 # ============================================================================
 @dsl.component(
-    packages_to_install=["google-cloud-storage", "tensorflow==2.15.0"],
+    packages_to_install=["google-cloud-storage", "tensorflow==2.15.0", "packaging"],
     base_image="python:3.10-slim"
 )
 def download_cat_dog_data_from_gcs(
@@ -458,7 +458,7 @@ def compare_models(
 # Pipeline Component 5: Upload Model to GCS
 # ============================================================================
 @dsl.component(
-    packages_to_install=["google-cloud-storage"],
+    packages_to_install=["google-cloud-storage", "packaging"],
     base_image="python:3.10-slim"
 )
 def upload_model_to_gcs(
@@ -549,7 +549,7 @@ def upload_model_to_gcs(
 # Pipeline Component 6: Publish Pub/Sub Message
 # ============================================================================
 @dsl.component(
-    packages_to_install=["google-cloud-pubsub"],
+    packages_to_install=["google-cloud-pubsub", "packaging"],
     base_image="python:3.10-slim"
 )
 def publish_model_trained_message(
