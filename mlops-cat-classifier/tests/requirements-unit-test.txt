@@ -1,7 +1,7 @@
 # Requirements for running unit tests
 
 pytest==7.4.3
-pillow==10.1.0
+pillow==10.3.0
 numpy==1.24.3
 tensorflow==2.15.0
-flask==3.0.0
+flask==3.0.3

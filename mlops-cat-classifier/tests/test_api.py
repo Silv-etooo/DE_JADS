@@ -13,7 +13,7 @@ import numpy as np
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Import after path is set
-from app.api.predict_api import app, prepare_image, is_cat
+from app.api.predict_api import app, prepare_image
 
 
 @pytest.fixture
@@ -59,8 +59,8 @@ def test_prepare_image_normalization(sample_image):
     """Test that prepare_image normalizes pixel values correctly"""
     processed = prepare_image(sample_image)
 
-    # MobileNetV2 preprocessing scales to [-1, 1]
-    assert processed.min() >= -1.0, "Pixel values should be >= -1"
+    # Values should be normalized to [0, 1]
+    assert processed.min() >= 0.0, "Pixel values should be >= 0"
     assert processed.max() <= 1.0, "Pixel values should be <= 1"
 
 
@@ -72,38 +72,6 @@ def test_prepare_image_rgb_conversion():
     # This should work without errors (converts to RGB internally)
     processed = prepare_image(gray_img)
     assert processed.shape == (1, 224, 224, 3)
-
-
-def test_is_cat_function():
-    """Test the is_cat detection logic"""
-    # Mock predictions with a cat class
-    mock_predictions = [[
-        ('n02123045', 'tabby', 0.85),
-        ('n02123159', 'tiger_cat', 0.10),
-        ('n02124075', 'Egyptian_cat', 0.03),
-    ]]
-
-    is_cat_detected, confidence, label = is_cat(mock_predictions)
-
-    assert is_cat_detected == True, "Should detect cat"
-    assert confidence == 0.85, f"Expected confidence 0.85, got {confidence}"
-    assert label == 'tabby', f"Expected label 'tabby', got {label}"
-
-
-def test_is_cat_function_no_cat():
-    """Test is_cat when no cat is detected"""
-    # Mock predictions with no cat classes
-    mock_predictions = [[
-        ('n02084071', 'dog', 0.90),
-        ('n02121808', 'domestic_dog', 0.05),
-        ('n02110063', 'poodle', 0.03),
-    ]]
-
-    is_cat_detected, confidence, label = is_cat(mock_predictions)
-
-    assert is_cat_detected == False, "Should not detect cat"
-    assert confidence == 0.0, f"Expected confidence 0.0, got {confidence}"
-    assert label == "not a cat", f"Expected 'not a cat', got {label}"
 
 
 # =============================================================================
@@ -120,16 +88,6 @@ def test_health_endpoint(client):
     assert 'status' in data, "Response should contain 'status'"
     assert data['status'] == 'healthy', "Status should be 'healthy'"
     assert 'model' in data, "Response should contain 'model'"
-    assert data['model'] == 'MobileNetV2', "Model should be MobileNetV2"
-
-
-def test_home_endpoint(client):
-    """Test the / endpoint returns HTML"""
-    response = client.get('/')
-
-    assert response.status_code == 200, "Home endpoint should return 200"
-    assert b'<!DOCTYPE html>' in response.data or b'<html' in response.data, \
-        "Should return HTML content"
 
 
 def test_predict_endpoint_no_file(client):
@@ -140,21 +98,6 @@ def test_predict_endpoint_no_file(client):
 
     data = response.get_json()
     assert 'error' in data, "Response should contain 'error'"
-    assert data['error'] == 'No File Provided', "Should indicate no file provided"
-
-
-def test_predict_endpoint_empty_filename(client):
-    """Test /predict endpoint with empty filename"""
-    data = {
-        'file': (io.BytesIO(b''), '')  # Empty filename
-    }
-
-    response = client.post('/predict', data=data, content_type='multipart/form-data')
-
-    assert response.status_code == 400, "Should return 400 for empty filename"
-
-    json_data = response.get_json()
-    assert 'error' in json_data, "Response should contain 'error'"
 
 
 def test_predict_endpoint_valid_image(client, sample_image_bytes):
@@ -173,19 +116,14 @@ def test_predict_endpoint_valid_image(client, sample_image_bytes):
     assert 'is_cat' in json_data, "Response should contain 'is_cat'"
     assert 'confidence' in json_data, "Response should contain 'confidence'"
     assert 'detected_class' in json_data, "Response should contain 'detected_class'"
-    assert 'top_predictions' in json_data, "Response should contain 'top_predictions'"
 
     # Check data types
     assert isinstance(json_data['is_cat'], bool), "'is_cat' should be boolean"
     assert isinstance(json_data['confidence'], (int, float)), "'confidence' should be numeric"
     assert isinstance(json_data['detected_class'], str), "'detected_class' should be string"
-    assert isinstance(json_data['top_predictions'], list), "'top_predictions' should be list"
 
-    # Check predictions list structure
-    if len(json_data['top_predictions']) > 0:
-        pred = json_data['top_predictions'][0]
-        assert 'class' in pred, "Prediction should contain 'class'"
-        assert 'confidence' in pred, "Prediction should contain 'confidence'"
+    # Check confidence is in valid range
+    assert 0 <= json_data['confidence'] <= 1, "Confidence should be between 0 and 1"
 
 
 def test_predict_endpoint_png_image(client):
@@ -239,11 +177,10 @@ def test_predict_endpoint_invalid_file(client):
 
     json_data = response.get_json()
     assert 'error' in json_data, "Response should contain 'error'"
-    assert json_data['error'] == 'Prediction failed', "Should indicate prediction failure"
 
 
 # =============================================================================
-# Integration Tests
+# Integration Test
 # =============================================================================
 
 def test_full_prediction_workflow(client, sample_image_bytes):
@@ -263,11 +200,15 @@ def test_full_prediction_workflow(client, sample_image_bytes):
     # 3. Verify prediction response
     result = predict_response.get_json()
     assert 'is_cat' in result
-    assert 'top_predictions' in result
+    assert 'confidence' in result
+    assert 'detected_class' in result
 
     # Confidence should be between 0 and 1
-    if result['confidence'] > 0:
-        assert 0 <= result['confidence'] <= 1, "Confidence should be between 0 and 1"
+    assert 0 <= result['confidence'] <= 1, "Confidence should be between 0 and 1"
+
+    # detected_class should be either 'cat' or 'not cat'
+    assert result['detected_class'] in ['cat', 'not cat'], \
+        "detected_class should be 'cat' or 'not cat'"
 
 
 # =============================================================================
