@@ -8,12 +8,17 @@ import os
 import io
 from PIL import Image
 import numpy as np
+from unittest.mock import Mock, patch, MagicMock
 
 # Add parent directory to path to import the app
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-# Import after path is set
-from app.api.predict_api import app, prepare_image
+# Mock the model loading before importing predict_api
+mock_model = Mock()
+mock_model.predict.return_value = np.array([[0.3]])  # Mock prediction (30% = cat)
+
+with patch('tensorflow.keras.models.load_model', return_value=mock_model):
+    from app.api.predict_api import app, prepare_image
 
 
 @pytest.fixture
